@@ -21,6 +21,7 @@ def getMagnificationLevel():
    	magnification_level=-1
    	for row in results:
       		magnification_level = row[0]
+	db.close()
 	return magnification_level
 
 
