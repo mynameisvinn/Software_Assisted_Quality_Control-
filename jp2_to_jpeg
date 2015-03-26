@@ -1,0 +1,13 @@
+% TO BE UPDATED
+
+% function converts jp2 to jpeg
+i_1 = imread('ta.jp2');
+
+% select RGB channel
+i_2 = i_1(:,:,1); 
+
+% convert to 8 bit since matlab automatically converts 12 bit images to 16 bit
+i_4 = uint8(i_1);
+
+% save as lossy jpg
+imwrite(i_4, 'newImage2.jpg', 'jpg', 'mode', 'lossy');
