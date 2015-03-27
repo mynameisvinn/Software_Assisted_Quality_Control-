@@ -1,9 +1,9 @@
 
-% function: detect objects
-% inputs:
-% outputs:
+%% image processing
+% function: given image, create binary image for object counting
+% input: file name
+% output: image (2d array)
 
-%% basic processing
 clc
 
 i1 = imread('red_25.jpg');
@@ -23,6 +23,9 @@ i7 = imerode(i6, se);
 i8 = imerode(i7, se);
 
 %% generate mask
+% function: given image, generate mask to exclude background
+% input: image object
+% output: image object
 
 % http://matlabtricks.com/post-35/a-simple-image-segmentation-example-in-matlab
 
@@ -44,12 +47,18 @@ j1 = imread('rgb_25.jpg');
 man = uint8(man);
 j2 = j1.*man;
 
-%% object detection
+%% detect objects
+% function: given processed image, generate contours
+% input: processed image
+% output: array of contours
 
 s = regionprops(i8, 'Centroid', 'BoundingBox', 'Area');
 
 
-%% high level inspection
+%% inspect image
+% function: modify original image to show detected objects
+% input: original image
+% output: modified image
 
 % show ROI on original image
 image = imread('rgb_25.jpg');
@@ -65,7 +74,7 @@ for i = 1:length(s)
     end
 end
 
-%% cropping function
+%% generate tiles
 
 % cropping and saving ROI tiles
 
@@ -84,6 +93,8 @@ for i = 1:length(s)
         y = vertcat(y, s(i).Centroid(2));
     end
 end
+
+% save coordinates as csv to disk
 
 T = table(id, x, y)
 write(T, 'output.txt')
