@@ -47,7 +47,7 @@ tissue_mask = uint8(tissue_mask);
 j2_red = j1_red.*tissue_mask;
 imwrite(j2_red, 'red_25_cropped.jpg');
 
-%% process masked image
+%% find peaks
 % function: prepares masked image for counting
 % inputs: threshold value (set at 40) for imextendedmax
 % outputs: image array for regionprops
@@ -57,24 +57,24 @@ clear
 
 processed_image = imread('rgb_25_cropped.jpg');
 
+% since RGB is used, need to select red channel
 processed_image = processed_image(:,:,1);
 
+% imadjust sharpens contrast
 processed_image = imadjust(processed_image, [0 1], [0 1], 5);
-processed_image = wiener2(processed_image, [5 5]);
+% processed_image = wiener2(processed_image, [5 5]);
 
 se = strel('disk',40);
-processed_image = imtophat(processed_image, se);
+% processed_image = imtophat(processed_image, se);
 
 processed_image = imdilate(processed_image, se);
 
 % keep regional maximum only if it is at least 50 units greater
 processed_image = imextendedmax(processed_image,80);
 
-% erode smaller objects and regenerate survivors
-processed_image = imopen(processed_image, se);
-
+% do not remove smaller peaks here; instead, apply conditional filter
+% downstream
 % processed_image is logical type - do not convert to uint8 yet
-processed_image = imerode(processed_image, se);
 
 
 %% count objects
