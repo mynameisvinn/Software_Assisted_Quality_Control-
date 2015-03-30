@@ -14,10 +14,11 @@ tileW = uint64(tileW * power(2, imageLevels - magnificationLevel));
 tileH = uint64(tileH * power(2, imageLevels - magnificationLevel));
 
 
-cntTileX = uint64(ceil(double(imageW) / double(tileW)));
+cntTileX = uint64(ceil((double(imageW / tileW)))); 
 
-xNum = uint64(floor(double(clickX) / double(tileW)));
-yNum = uint64(floor(double(clickY) / double(tileH)));
+
+xNum = uint64(floor(double(clickX / tileW)));
+yNum = uint64(floor(double(clickY / tileH)));
 tileID = xNum + yNum * cntTileX + 1;
 
 end
