@@ -19,11 +19,20 @@ i1 = imdilate(i1,se);
 
 BW_mask = im2bw(i1);
 BW_mask = imfill(BW_mask, 'holes');
-labels = bwlabel(BW_mask);
-id = labels(6000, 6000);
+BW_mask = imfill(BW_mask, 'holes');
 
+% labels gives the labeled image
+% num gives the number of objects
+[labels, num] = bwlabel(BW_mask);
+% id = labels(6000, 6000);
+
+% find largest mask
+% https://it.mathworks.com/matlabcentral/newsreader/view_thread/91291
+tissue_properties = regionprops(labels, 'Area');
+[~,ind] = max([tissue_properties.Area]);
+    
 % tissue is a mask of logical type
-tissue_mask = (labels == id);
+tissue_mask = (labels == ind);
 
 %% apply mask to segment
 % step 2 of 2: apply mask
