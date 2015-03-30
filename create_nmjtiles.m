@@ -104,8 +104,13 @@ end
 x = []
 y = []
 id = []
+tileid = []
 
 image = imread('rgb_25.jpg');
+
+% extract dimensions for coordinatetotileid function
+dimensions = size(image)
+
 
 for i = 1:length(s)
     if (s(i).Area < 20)
@@ -117,8 +122,17 @@ for i = 1:length(s)
         id = vertcat(id, i);
         x = vertcat(x, s(i).Centroid(1));
         y = vertcat(y, s(i).Centroid(2));
+        
+        
+        % calculate tileID
+        clickX = centers(1)
+        clickY = centers(2)
+        imageH = dimensions(1)
+        imageW = dimensions(2)
+        tile_hash_id = CoordinatesToTileNumber(clickX, clickY, imageH, imageW)
+        tileid = vertcat(tileid, tile_hash_id);
     end
 end
 
-T = table(id, x, y)
+T = table(id, x, y, tileid)
 write(T, 'output.txt')
