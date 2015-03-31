@@ -14,15 +14,13 @@ for i = 3:length(list_of_files)-1
     path = strcat(char(directoryname), char('/'), 'red_25.jpg')
     imwrite(i1_red, path, 'jpg', 'mode', 'lossy', 'Quality', 25);
 
-
     se = strel('rectangle',[40 40]);
     i1_red = imerode(i1_red,se);
     i1_red = imdilate(i1_red,se);
-    i1_red = imdilate(i1_red,se);
-    i1_red = imdilate(i1_red,se);
 
     BW_mask = im2bw(i1_red);
-    BW_mask = imfill(BW_mask, 'holes');
+    se = strel('disk',[100]);
+    BW_mask = imdilate(BW_mask,se);
     BW_mask = imfill(BW_mask, 'holes');
 
     % labels gives the labeled image
@@ -41,6 +39,7 @@ for i = 3:length(list_of_files)-1
 
     tissue_mask = uint8(tissue_mask);
     j2 = i1.*repmat(tissue_mask,[1,1,3]);
-    imwrite(j2, 'rgb_25_cropped.jpg');
+    path = strcat(char(directoryname), char('/'), 'rgb_25_cropped.jpg')
+    imwrite(j2, path);
 
 end
