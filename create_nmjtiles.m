@@ -47,6 +47,15 @@ tissue_mask = uint8(tissue_mask);
 j2_red = j1_red.*tissue_mask;
 imwrite(j2_red, 'red_25_cropped.jpg');
 
+%% apply mask to segment
+% step 2 of 2: apply mask to uncompressed tif file
+% https://www.mathworks.com/matlabcentral/answers/38547-masking-out-image-area-using-binary-mask
+
+j1 = imread('rgb_25.tif');
+tissue_mask = uint8(tissue_mask);
+j2 = j1.*repmat(tissue_mask,[1,1,3]);
+imwrite(j2, 'rgb_25_cropped.tif');
+
 %% find peaks
 % function: prepares masked image for counting
 % inputs: threshold value (set at 40) for imextendedmax
@@ -55,27 +64,25 @@ imwrite(j2_red, 'red_25_cropped.jpg');
 clc
 clear
 
-processed_image = imread('rgb_25_cropped.jpg');
+processed_image = imread('rgb_25_cropped.tif');
 
 % since RGB is used, need to select red channel
 processed_image = processed_image(:,:,1);
 
 % imadjust sharpens contrast
-processed_image = imadjust(processed_image, [0 1], [0 1], 5);
+processed_image = imadjust(processed_image, [ ], [ ], 5);
 % processed_image = wiener2(processed_image, [5 5]);
 
+% consolidate clusters of peaks
 se = strel('disk',40);
-% processed_image = imtophat(processed_image, se);
-
 processed_image = imdilate(processed_image, se);
 
 % keep regional maximum only if it is at least 50 units greater
-processed_image = imextendedmax(processed_image,80);
+processed_image = imextendedmax(processed_image,50);
 
 % do not remove smaller peaks here; instead, apply conditional filter
 % downstream
 % processed_image is logical type - do not convert to uint8 yet
-
 
 %% count objects
 
