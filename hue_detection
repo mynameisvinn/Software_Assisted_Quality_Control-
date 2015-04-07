@@ -1,0 +1,58 @@
+%% identify 
+
+im1 = imread('test1.jpg');
+
+% convert from rgb to hue
+im2 = rgb2hsv(im1);
+
+% 1st plane is hue (2nd is saturation and 3rd is value)
+% https://www.mathworks.com/help/matlab/ref/rgb2hsv.html
+im3 = im2(:,:,1);
+
+% convert to a hue angle
+% https://www.mathworks.com/matlabcentral/answers/8058-hue-value-of-image-image-processing-in-matlab-rgb-to-hsv
+im4 = im3 .* 360;
+
+% recast im4 to int8
+im5 = uint8(im4);
+
+% create mask for orange hue
+% http://www.color-blindness.com/color-name-hue/
+im6 = (im5 < 60) & (im5 > 35);
+
+% invert mask
+im7 = imcomplement(im6);
+im8 = uint8(im7);
+
+% now, compare against red channel
+j1 = im1(:,:,1);
+
+% excise regions that satisfy hue mask
+% compare j2 with original image to determine if misses are due to (1)
+% poor detection or (2) subsetting conditions
+j2 = j1 .* im8;
+
+% look for high contrast regions
+j3 = j2 > 150;
+
+% for weightedcentroids => mask (must be logic) first, followed by red channel
+s = regionprops(j3, j2, 'WeightedCentroid', 'Area')
+
+% remove small flecks
+s2 = s([s.Area] >20)
+
+% manual inspection of predictions
+figure, imshowpair(im1, im1, 'montage')
+
+for i = 1:length(s2)
+    viscircles(s2(i).WeightedCentroid, 5, 'EdgeColor', 'b')
+end
+
+%% create tiles
+for i = 1:length(s2)
+    a = round(s2(i).WeightedCentroid(1));
+    b = round(s2(i).WeightedCentroid(2));
+    tile = im1( b-50: b +50, a - 50: a + 50,:);
+    filename = strcat(int2str(i),'.jpg')
+    imwrite(tile, filename, 'jpg');
+end
