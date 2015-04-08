@@ -1,8 +1,8 @@
-%% identify 
+%% nmj detection
+tic
+im1 = imread('test2.tif');
 
-im1 = imread('test1.jpg');
-
-% convert from rgb to hue
+% convert from rgb to hue, saturation and value
 im2 = rgb2hsv(im1);
 
 % 1st plane is hue (2nd is saturation and 3rd is value)
@@ -16,30 +16,43 @@ im4 = im3 .* 360;
 % recast im4 to int8
 im5 = uint8(im4);
 
-% create mask for orange hue
+% create mask for orange hue, which falls between hue values of [30,60]
 % http://www.color-blindness.com/color-name-hue/
-im6 = (im5 < 60) & (im5 > 35);
+im6 = (im5 < 60) &(im5 > 30);
 
-% invert mask
+% invert mask 
 im7 = imcomplement(im6);
 im8 = uint8(im7);
 
-% now, compare against red channel
+% subset red channel
 j1 = im1(:,:,1);
 
-% excise regions that satisfy hue mask
+% retain regions that satisfy hue mask
+% j2 image satisfies hue condition
 % compare j2 with original image to determine if misses are due to (1)
 % poor detection or (2) subsetting conditions
 j2 = j1 .* im8;
 
-% look for high contrast regions
-j3 = j2 > 150;
+% create green mask to exclude yellow FPs
+g1 = im1(:,:,2);
+g2 = g1 < 200;
+g3 = uint8(g2);
 
+% g4 image satisfies hue condition AND green condition
+% green condition eliminates yellow FPs
+g4 = j2 .* g3;
+
+% look for high intensity areas of g5, which is the red channel
+% g5 image is a mask for counting
+% absolute threshold versus relative threshold
+g5 = g4 > 200;
+
+% counting
 % for weightedcentroids => mask (must be logic) first, followed by red channel
-s = regionprops(j3, j2, 'WeightedCentroid', 'Area')
+s = regionprops(g5, g4, 'WeightedCentroid', 'Area')
 
 % remove small flecks
-s2 = s([s.Area] >20)
+s2 = s([s.Area] >50)
 
 % manual inspection of predictions
 figure, imshowpair(im1, im1, 'montage')
@@ -47,6 +60,8 @@ figure, imshowpair(im1, im1, 'montage')
 for i = 1:length(s2)
     viscircles(s2(i).WeightedCentroid, 5, 'EdgeColor', 'b')
 end
+
+toc
 
 %% create tiles
 for i = 1:length(s2)
