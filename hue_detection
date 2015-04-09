@@ -1,8 +1,12 @@
-%% nmj detection
+%% function: detects nmjs
+% general principle: subset via hue & value, detect peaks from red/green
+% channels
+
 tic
-im1 = imread('test2.tif');
+im1 = imread('test1.tif');
 
 % convert from rgb to hue, saturation and value
+% im2 is now recasted as hsv array
 im2 = rgb2hsv(im1);
 
 % 1st plane is hue (2nd is saturation and 3rd is value)
@@ -16,52 +20,88 @@ im4 = im3 .* 360;
 % recast im4 to int8
 im5 = uint8(im4);
 
-% create mask for orange hue, which falls between hue values of [30,60]
+% create mask for orange hue, which falls between [30,60]
+% every pixel with a hue between [30, 60] is kept
 % http://www.color-blindness.com/color-name-hue/
-im6 = (im5 < 60) &(im5 > 30);
+im6 = (im5 < 55 & im5 > 20);
 
-% invert mask 
-im7 = imcomplement(im6);
-im8 = uint8(im7);
+% recast im6 to 8-bit so it can be used as a mask
+im7 = uint8(im6);
 
-% subset red channel
+% subset red channel from original image
 j1 = im1(:,:,1);
 
 % retain regions that satisfy hue mask
-% j2 image satisfies hue condition
+% j2 satisfies hue condition
 % compare j2 with original image to determine if misses are due to (1)
 % poor detection or (2) subsetting conditions
-j2 = j1 .* im8;
+j2 = j1 .* im7;
 
 % create green mask to exclude yellow FPs
+% reduce FPs by decreasing g2 condition
 g1 = im1(:,:,2);
-g2 = g1 < 200;
+g2 = g1 < 150;
 g3 = uint8(g2);
 
-% g4 image satisfies hue condition AND green condition
+% j3 satisfies hue condition AND green condition
 % green condition eliminates yellow FPs
-g4 = j2 .* g3;
+j3 = j2 .* g3;
 
-% look for high intensity areas of g5, which is the red channel
-% g5 image is a mask for counting
-% absolute threshold versus relative threshold
-g5 = g4 > 200;
+% create value mask to exclude yellow FPs
+% keep pixels wehre value > 80%
+% reduce FPs by decreasing g2 condition
+h1 = im2(:,:,3);
+h2 = h1 > .80;
+h3 = uint8(h2);
+
+% j4 satisfies hue condition AND green condition AND value condition
+j4 = j3 .* h3;
+
+
+% look for high intensity areas of j4, which is the fully subsetted red channel
+% j5 image is a mask for counting
+j5 = j4 > 200;
 
 % counting
 % for weightedcentroids => mask (must be logic) first, followed by red channel
-s = regionprops(g5, g4, 'WeightedCentroid', 'Area')
+s = regionprops(j5, j4, 'WeightedCentroid', 'Area')
 
 % remove small flecks
 s2 = s([s.Area] >50)
 
-% manual inspection of predictions
-figure, imshowpair(im1, im1, 'montage')
+toc
+
+%% manual inspection of predictions
+% imshowpair(im1, im1, 'montage')
+imshow(im1)
 
 for i = 1:length(s2)
     viscircles(s2(i).WeightedCentroid, 5, 'EdgeColor', 'b')
 end
 
-toc
+actual = csvread('actual.csv');
+
+for i = 1:length(actual)
+    viscircles(actual(i,:), 200, 'EdgeColor', 'r')
+end
+
+%% output to csv file
+
+% preallocate arrays
+z = length(s2);
+x = zeros(z, 1);
+y = zeros(z, 1);
+
+% populate arrays with centroid coordinates
+for i = 1:z
+    x(i) = round(s2(i).WeightedCentroid(1));
+    y(i) = round(s2(i).WeightedCentroid(2));
+end
+
+% zip arrays and write csv
+m = cat(2, x, y)
+csvwrite('predictions.csv', m)
+
 
 %% create tiles
 for i = 1:length(s2)
