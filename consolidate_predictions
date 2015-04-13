@@ -1,0 +1,24 @@
+v = csvread('predictions.csv');
+v = v(:,1:2);
+u = v;
+
+D = squeeze(sqrt(sum(bsxfun(@minus,v,permute(u,[3 2 1])).^2,2)));
+
+k = 1;
+m = length(v);
+n = length(v);
+records = double(zeros(1,2));
+index = 1;
+
+for x = 1:n
+    for y = k:m
+        dist = D(y, x);
+        if (dist ~= 0) & (dist < 50)
+            records(index,1) = round(x);
+            records(index,2) = dist;
+            index = index + 1;
+        end
+    end
+    k = k+1;
+end
+            
