@@ -1,0 +1,14 @@
+% function creates "pretty" TIFFs from jp2s
+
+actual_pts = csvread('TibialisAnterior20-Section28.csv');
+image = imread('25_10_2015-02-18_3_1016_()_3_2_20_schema_assigned_125826_lossy.jp2');
+image1 = image;
+image1(:,:,1)=image1(:,:,1)*2^6;
+
+for i = 1:length(actual_pts)
+    centers = [actual_pts(i,:)]
+    delta = 200
+    tile = image1(centers(2)-delta: centers(2)+delta , centers(1)- delta: centers(1) + delta, :);
+    filename = strcat(int2str(i),'.tif')
+    imwrite(tile, filename);
+end
