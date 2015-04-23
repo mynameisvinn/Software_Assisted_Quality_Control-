@@ -1,61 +1,74 @@
 % script returns area (in pixels) for the largest object in image
 
-%% Step 1: read image into memory
-% user provides data ID
-data_id = 7112;
-
-% connect to limsdb and retreive file path
-conn = database('limsdb','lims','mou53Brains!');
-curs = exec(conn,[]);
-sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
-curs = exec(conn,sql);
-curs = fetch(curs);
-imagefilename = curs.Data;
-
-% create image file path
-path = strcat('Z:\Converted Image Data\', imagefilename);
-
-% load image
-image_raw = imread(char(path));
-
-%% Step 2: extract boundary
-
 tic
-% visual inspection
-image_converted = uint8(image_raw);
 
-% convert image to binary
-image_bw = im2bw(image_converted, graythresh(image_converted));
+csv_id = zeros(length(list_of_data_id), 1);
+csv_area = zeros(length(list_of_data_id), 1);
 
-% denoise noise and fill in largest tissue
-se = strel('rectangle',[40 40]);
-image_bw_1 = imerode(image_bw,se);
-image_bw_2 = imdilate(image_bw_1,se);
+for i = 1:length(list_of_data_id) 
+    
+    data_id = list_of_data_id(i);
 
-% use a larger disk to smooth boundaries
-se = strel('disk',[100]);
-image_bw_3 = imdilate(image_bw_2,se);
-image_bw_4 = imdilate(image_bw_3,se);
+    % connect to limsdb and retreive file path
+    conn = database('limsdb','lims','mou53Brains!');
+    curs = exec(conn,[]);
+    sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
+    curs = exec(conn,sql);
+    curs = fetch(curs);
+    imagefilename = curs.Data;
 
-% fill in holes, if any
-image_bw_5 = imfill(image_bw_4, 'holes');
+    % create image file path
+    path = strcat('Z:\Converted Image Data\', imagefilename);
+
+    % load image
+    image_raw = imread(char(path));
+
+    % Step 2: extract boundary 
+    image_converted = uint8(image_raw);
+
+    % convert image to binary
+    image_bw = im2bw(image_converted, graythresh(image_converted));
+
+    % denoise noise and fill in largest tissue
+    se = strel('rectangle',[40 40]);
+    image_bw_1 = imerode(image_bw,se);
+    image_bw_2 = imdilate(image_bw_1,se);
+
+    % use a larger disk to smooth boundaries
+    se = strel('disk',[100]);
+    image_bw_3 = imdilate(image_bw_2,se);
+    image_bw_4 = imdilate(image_bw_3,se);
+
+    % fill in holes, if any
+    image_bw_5 = imfill(image_bw_4, 'holes');
+
+
+    %Step 3: inspect quality of mask
+    % recast to 8 bit for masking purposes
+    image_bw_6 = uint8(image_bw_5);
+
+    % crop image according to mask
+    image_mask = image_converted .* repmat(image_bw_6,[1,1,3]);
+
+    % save cropped image for visual inspection
+    cropped_filename = strcat(int2str(data_id), '_cropped_','.jpg');
+    imwrite(image_mask, cropped_filename, 'jpg', 'Quality', 25);
+
+    % save original image for inspection
+    original_filename = strcat(int2str(data_id), '_original_','.jpg');
+    imwrite(image_converted, original_filename, 'jpg', 'Quality', 25);
+
+    % Step 4: calculate area of object
+    image_properties = regionprops(image_bw_5, 'Area');
+
+    % find largest object and return object area 
+    [~,ind] = max([image_properties.Area]);
+    
+    csv_id(i) = data_id;
+    csv_area(i) = image_properties(ind).Area;
+    
+    section_area_calculations = cat(2, csv_id, csv_area);
+    csvwrite('section_area_calculations.csv', section_area_calculations)
+end
+    
 toc
-
-%% Step 3: inspect quality of mask
-
-% recast to 8 bit for masking purposes
-image_bw_6 = uint8(image_bw_5);
-
-% crop image according to mask
-image_mask = image_converted .* repmat(image_bw_6,[1,1,3]);
-
-% inspect mask
-imshow(image_mask)
-
-%% Step 4: calculate areas of object
-
-image_properties = regionprops(image_bw_5, 'Area');
-
-% find largest object and return object area 
-[~,ind] = max([image_properties.Area]);
-image_properties(ind).Area
