@@ -1,0 +1,24 @@
+from skimage.feature import blob_dog, blob_log, blob_doh
+
+def calculate_number_blobs(image):
+    
+    '''function: for each image, calculate number of blobs using difference of gaussian (LoG) method, which is faster and less accurate than laplacian of gaussian (LoG)'''
+    
+
+    return len(blob_dog(image, max_sigma = 10, threshold = .05))
+
+
+features = []
+
+for neg_patch in neg_patches:
+        features.append(calculate_number_blobs(neg_patch))
+
+negative['blobs'] = features
+
+
+features = []
+
+for pos_patch in pos_patches:
+        features.append(calculate_number_blobs(pos_patch))
+
+positive['blobs'] = features
