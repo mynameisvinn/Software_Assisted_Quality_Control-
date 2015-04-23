@@ -1,4 +1,10 @@
-function [tileID] = CoordinatesToTileNumber(clickX, clickY, imageW, imageH)
+function tileID = CoordinatesToTileNumber(clickX, clickY, imageW, imageH)
+
+% following arguments returns tileID of 21
+% clickX = 3405;
+% clickY = 1187;
+% imageW = 13466;
+% imageH = 28693;
 
 imageLevels = 8;
 magnificationLevel =9;
