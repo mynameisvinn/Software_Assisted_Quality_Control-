@@ -20,7 +20,7 @@ image_raw = imread(char(path));
 %%
 
 tic
-% recast to 8 bit for visual inspection
+% visual inspection
 image_converted = uint8(image_raw);
 
 % convert image to binary
