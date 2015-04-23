@@ -1,4 +1,4 @@
-% function returns area (in pixels) for the largest object in image
+% script returns area (in pixels) for the largest object in image
 
 % user provides data ID
 data_id = 7112;
@@ -15,46 +15,46 @@ imagefilename = curs.Data;
 path = strcat('Z:\Converted Image Data\', imagefilename);
 
 % load image
-im0 = imread(char(path));
+image_raw = imread(char(path));
 
 %%
 
 tic
 % recast to 8 bit for visual inspection
-im1 = uint8(im0);
+image_converted = uint8(image_raw);
 
 % convert image to binary
-bw = im2bw(im1, graythresh(im1));
+image_bw = im2bw(image_converted, graythresh(image_converted));
 
 % denoise noise and fill in largest tissue
 se = strel('rectangle',[40 40]);
-bw_1 = imerode(bw,se);
-bw_2 = imdilate(bw_1,se);
+image_bw_1 = imerode(image_bw,se);
+image_bw_2 = imdilate(image_bw_1,se);
 
 % use a larger disk to smooth boundaries
 se = strel('disk',[100]);
-bw_3 = imdilate(bw_2,se);
-bw_4 = imdilate(bw_3,se);
+image_bw_3 = imdilate(image_bw_2,se);
+image_bw_4 = imdilate(image_bw_3,se);
 
 % fill in holes, if any
-bw_5 = imfill(bw_4, 'holes');
+image_bw_5 = imfill(image_bw_4, 'holes');
 toc
 
 %% Step 3: inspect quality of mask
 
 % recast to 8 bit for masking purposes
-bw_6 = uint8(bw_5);
+image_bw_6 = uint8(image_bw_5);
 
 % crop image according to mask
-cropped = im1 .* repmat(bw_6,[1,1,3]);
+image_mask = image_converted .* repmat(image_bw_6,[1,1,3]);
 
 % inspect mask
-imshow(cropped)
+imshow(image_mask)
 
 %% Step 4: calculate areas of object
 
-s = regionprops(bw_5, 'Area');
+image_properties = regionprops(image_bw_5, 'Area');
 
 % find largest object and return object area 
-[~,ind] = max([s.Area]);
-s(ind).Area
+[~,ind] = max([image_properties.Area]);
+image_properties(ind).Area
