@@ -1,5 +1,6 @@
 % script returns area (in pixels) for the largest object in image
 
+%% Step 1: read image into memory
 % user provides data ID
 data_id = 7112;
 
@@ -17,7 +18,7 @@ path = strcat('Z:\Converted Image Data\', imagefilename);
 % load image
 image_raw = imread(char(path));
 
-%%
+%% Step 2: extract boundary
 
 tic
 % visual inspection
