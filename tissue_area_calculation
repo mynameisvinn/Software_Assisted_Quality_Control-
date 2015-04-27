@@ -1,0 +1,41 @@
+clear
+
+list_of_images = csvread('section_area_calculations.csv');
+
+new_data_id = zeros(length(list_of_images), 1);
+new_slides_id = zeros(length(list_of_images), 1);
+area = zeros(length(list_of_images), 1);
+resolution = zeros(length(list_of_images), 1);
+
+for i = 1:length(list_of_images)
+
+    % connect to limsdb
+    conn = database('limsdb','lims','mou53Brains!');
+    curs = exec(conn,[]);
+
+    % user provides data ID
+    data_id = list_of_images(i, 1);
+
+    % retrieve corresponding slides_id from limsdb.data_file
+    sql = ['SELECT slides_id FROM data_file WHERE id = "' num2str(data_id) '"'];
+    curs = exec(conn,sql);
+    curs = fetch(curs);
+    slides_id = cell2mat(curs.Data);
+
+    % using slides_id, retreive source_lens from limsdb.slides
+    sql = ['SELECT source_lens FROM slides WHERE id = "' num2str(slides_id) '"'];
+    curs = exec(conn,sql);
+    curs = fetch(curs);
+    source_lens = cell2mat(curs.Data);
+    
+    new_data_id(i) = data_id;
+    new_slides_id(i) = slides_id;
+    area(i) = list_of_images(i,2);
+    resolution(i) = source_lens;
+    
+end
+
+tissue_calculation = cat(2, new_data_id, new_slides_id, area, resolution);
+csvwrite('tissue_calculation.csv', tissue_calculation)
+
+    
