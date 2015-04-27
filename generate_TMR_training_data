@@ -1,0 +1,216 @@
+clear
+clc
+
+tic
+
+% Step 1: load image into memory
+
+% connect to limsdb
+conn = database('limsdb','lims','mou53Brains!');
+curs = exec(conn,[]);
+
+% user provides data ID
+data_id = 7545;
+ 
+% retreive image file path
+sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
+curs = exec(conn,sql);
+curs = fetch(curs);
+imagefilename = curs.Data;
+
+% create image file path
+path = strcat('Z:\Converted Image Data\', imagefilename);
+
+% Step 2: generate TMR predictions
+
+tic
+
+
+im0 = imread(char(path));
+% im0 = imread('FN_7543_2.tif');
+
+% recast from uint16 to uint8
+im1 = uint8(im0);
+
+% convert rgb to hsv colorspace
+im2 = rgb2hsv(im1);
+
+% extract hue
+% 1st plane is hue; 2nd is saturation; 3rd is value
+% https://www.mathworks.com/help/matlab/ref/rgb2hsv.html
+im3 = im2(:,:,1);
+
+% convert to a hue angle, which is required for color subsetting
+% https://www.mathworks.com/matlabcentral/answers/8058-hue-value-of-image-image-processing-in-matlab-rgb-to-hsv
+im4 = im3 .* 360;
+
+% cast im4 (double) to im5 (int8)
+im5 = uint8(im4);
+
+% create orange hue mask (values of [5,65]
+% keep this larger band for reddish NMJs
+% http://www.color-blindness.com/color-name-hue/
+im6 = (im5 < 65 & im5 > 5);
+
+% recast im6 to int8 create a mask
+im7 = uint8(im6);
+
+% j1 is the red channel, as subsetted from original rgb image
+j1 = im1(:,:,1);
+
+% extract regions that satisfy hue mask
+% j2 represents regions of red channel that satisfies hue mask
+j2 = j1 .* im7;
+
+% now, lets create saturation mask
+% keep pixels where saturation > 75%
+% lowering saturation threshold will increase FPs dramatically
+h1 = im2(:,:,2);
+h2 = h1 > .75;
+h3 = uint8(h2);
+
+% j3 represents regions of red channel that satisfies both hue mask AND saturation mask
+j3 = j2 .* h3;
+
+% j4 represents regions of j3 with high red intensities
+j4 = j3 > 150;
+
+% for weightedcentroids calculation, => mask (logic) first, followed by grayscale channel
+tmr_predictions_1 = regionprops(j4, j3, 'WeightedCentroid', 'Area');
+
+toc
+
+% Step 3: minimize TMR FPs by removing regions with black regions
+
+% size filter to remove smaller image artifacts
+% tightening the size condition substantially reduces FPs
+tmr_predictions_2 = tmr_predictions_1([tmr_predictions_1.Area] >150);
+
+% preallocate structure for subsetted TMR predictions
+tmr_predictions_3 = repmat(struct('Area',0, 'WeightedCentroid', 0), 5, 1);
+tmr_predictions_3_counter = 1;
+
+for index_i_1 = 1:length(tmr_predictions_2)
+    
+    % collect coordinates from TMR predictions
+    a = round(tmr_predictions_2(index_i_1).WeightedCentroid(1));
+    b = round(tmr_predictions_2(index_i_1).WeightedCentroid(2));
+    
+    % generate image patch for TMR prediction
+    tile_red = im1(b - 25: b+ 25, a - 25: a + 25, 1);
+    
+    % threshold to find black regions
+    tile_bw = tile_red < 40;
+    
+    % calculate percentage of dark regions
+    percentage_black = sum(tile_bw(:)) / 40000; % denominator reflects tile dimensions (200x200)
+    
+    % copy if percentage_black is acceptable
+    if percentage_black < .8;
+        tmr_predictions_3(tmr_predictions_3_counter) = tmr_predictions_2(index_i_1);
+        tmr_predictions_3_counter = tmr_predictions_3_counter + 1;
+    end
+end
+
+
+% Step 4: extract TMR predictions from structure
+
+% preallocate arrays
+tmr_predictions_x = zeros(length(tmr_predictions_3), 1);
+tmr_predictions_y = zeros(length(tmr_predictions_3), 1);
+
+% populate arrays with coordinates of TMR predictions
+for index_i_2 = 1:length(tmr_predictions_3)
+    
+    tmr_predictions_x(index_i_2) = round(tmr_predictions_3(index_i_2).WeightedCentroid(1));
+    tmr_predictions_y(index_i_2) = round(tmr_predictions_3(index_i_2).WeightedCentroid(2));
+    
+end
+
+% zip arrays
+tmr_predictions_4 = cat(2, tmr_predictions_x, tmr_predictions_y);
+% csvwrite('tmr_predictions.csv', tmr_predictions_4)
+
+% Step 5: download coordinates for tmr bungarotoxin (red) from limsdb
+
+% query limsdb for actual coordinates
+sql = ['SELECT click_location_x_coordinate, click_location_y_coordinate, counter_id FROM limsdb.data_file_click where (counter_id = 1 OR counter_id =3) and data_file_id = "' num2str(data_id) '"'];
+curs = exec(conn,sql);
+curs = fetch(curs);
+tmr_actuals = curs.Data;
+
+
+% Step 6: compare TMR predictions with actual TMR coordinates to find false positives
+
+% preallocate arrays
+x = zeros(length(tmr_predictions_4), 1);
+y = zeros(length(tmr_predictions_4), 1);
+tmr_is_match = zeros(length(tmr_predictions_4), 1);
+
+for index_i_5 = 1:length(tmr_predictions_4)
+    
+    predicted_point = tmr_predictions_4(index_i_5,1:2);
+    
+    % for each prediction, compare against actual points
+    for index_j_5 = 1:length(tmr_actuals(:,1))
+        
+        actual_point = cell2mat(tmr_actuals(index_j_5,1:2));
+        
+        % calculate distance for each prediction/actual pair
+        check = 0;
+        distance = pdist([actual_point; predicted_point], 'euclidean');
+        
+        % if prediction/actual distance < 200, there is a match
+        if distance < 200
+            check = 1;
+            break
+        end
+        
+    end
+    
+    % recreate predictions csv, this time with channel and match
+    % predictions with 0 is_match means false positive
+    
+    x(index_i_5) = predicted_point(1);
+    y(index_i_5) = predicted_point(2);
+    tmr_is_match(index_i_5) = check;
+end
+
+tmr_false_positives = cat(2, x, y, tmr_is_match);
+
+% Step 7: visually inspect TMR false positives
+
+for index_i_6 = 1:length(tmr_false_positives)
+    
+    a = round(tmr_false_positives(index_i_6,1));
+    b = round(tmr_false_positives(index_i_6,2));
+    patch_size = 50;
+    
+    % create image patch if there is a match (1) or no match (0)
+    if (tmr_false_positives(index_i_6, 3) == 0)
+        
+        tmr_FP_patch = im1( b-patch_size: b +patch_size, a - patch_size: a + patch_size,:);
+        % tmr_FP_patch(:,:,2:3) = 0;
+        tmr_FP_filename = strcat('TMR_FP_', int2str(data_id), '_', int2str(index_i_6),'.tif');
+        imwrite(tmr_FP_patch, tmr_FP_filename, 'tif');
+    end
+end
+
+% Step 8: visually inspect TMR true positives
+
+for index_i_7 = 1:length(tmr_actuals)
+    
+    a = round(cell2mat(tmr_actuals(index_i_7,1)));
+    b = round(cell2mat(tmr_actuals(index_i_7,2)));
+    
+    patch_size = 50;
+    
+    % create image patch if there is a match (1) or no match (0)
+    
+    tmr_TP_patch = im1( b-patch_size: b +patch_size, a - patch_size: a + patch_size,:);
+    tmr_TP_filename = strcat('TMR_TP_', int2str(data_id), '_', int2str(index_i_7),'.tif');
+    imwrite(tmr_TP_patch, tmr_TP_filename, 'tif');
+    
+end
+
+toc
