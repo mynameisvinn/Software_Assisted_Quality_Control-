@@ -1,0 +1,39 @@
+tic
+
+% function creates
+
+
+list_of_images = [];
+
+%%
+
+for i = 1:length(list_of_images)
+
+    conn = database('limsdb','lims','mou53Brains!');
+    curs = exec(conn,[]);
+
+    % user provides data ID
+    data_id = list_of_images(i);
+
+    % retreive image file path
+    sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
+    curs = exec(conn,sql);
+    curs = fetch(curs);
+    imagefilename = curs.Data;
+
+    % create image file path
+    path = strcat('Z:\Converted Image Data\', imagefilename);
+
+    im0 = imread(char(path));
+    % im0 = imread('FN_7543_2.tif');
+
+    % recast from uint16 to uint8
+    im1 = uint8(im0);
+
+    % generate file name
+    filename = strcat('Out_', int2str(data_id), '.jpg');
+
+    % save as lossy jpg
+    imwrite(im1, filename, 'jpg', 'Quality', 25);
+end
+toc
