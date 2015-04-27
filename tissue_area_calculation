@@ -1,22 +1,20 @@
-clear
+tic
 
+% following visual inspection, load csv file
 list_of_images = csvread('section_area_calculations.csv');
 
-new_data_id = zeros(length(list_of_images), 1);
-new_slides_id = zeros(length(list_of_images), 1);
-area = zeros(length(list_of_images), 1);
-resolution = zeros(length(list_of_images), 1);
+% connect to limsdb
 
 for i = 1:length(list_of_images)
-
-    % connect to limsdb
+    
+    % establish connection
     conn = database('limsdb','lims','mou53Brains!');
     curs = exec(conn,[]);
 
-    % user provides data ID
+    % read data ID
     data_id = list_of_images(i, 1);
 
-    % retrieve corresponding slides_id from limsdb.data_file
+    % for each data ID, retrieve corresponding slides_id from limsdb.data_file
     sql = ['SELECT slides_id FROM data_file WHERE id = "' num2str(data_id) '"'];
     curs = exec(conn,sql);
     curs = fetch(curs);
@@ -28,14 +26,36 @@ for i = 1:length(list_of_images)
     curs = fetch(curs);
     source_lens = cell2mat(curs.Data);
     
-    new_data_id(i) = data_id;
-    new_slides_id(i) = slides_id;
-    area(i) = list_of_images(i,2);
-    resolution(i) = source_lens;
+    % define physical dimensions per pixel
+    if source_lens == 20;
+        dimensions = .465 ^2;
+    else
+        dimensions = (.465/2)^2;
+    end
     
+    % calculate area
+    area = dimensions * list_of_images(i, 2);
+    
+    % update record in limsdb
+    
+    % select attribute
+    colnames = {'tissue_surface_area'};
+
+    % store tissue surface area in array
+    data = {round(area)/1000000}; 
+
+    % identify relevant record via data_id (and not slide ID)
+    whereclause = strcat('where id = ', num2str(data_id));
+
+    % update record 
+    update(conn,'data_file', colnames,data, whereclause);
+      
 end
 
-tissue_calculation = cat(2, new_data_id, new_slides_id, area, resolution);
-csvwrite('tissue_calculation.csv', tissue_calculation)
+% close connection
+commit(conn);
+close(conn);  
+
+toc
 
     
