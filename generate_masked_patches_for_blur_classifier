@@ -1,0 +1,39 @@
+list_of_files = dir;
+
+for i = 3:length(list_of_files)
+    
+    path = list_of_files(i);
+    
+    im0 = imread(path.name);
+
+    % recast from uint16 to uint8
+    im1 = uint8(im0);
+
+    % convert rgb to hsv colorspace
+    im2 = rgb2hsv(im1);
+
+    % extract hue
+    % 1st plane is hue; 2nd is saturation; 3rd is value
+    im3 = im2(:,:,1);
+
+    % convert to a hue angle, which is required for color subsetting
+    im4 = im3 .* 360;
+
+    % cast im4 (double) to im5 (int8)
+    im5 = uint8(im4);
+
+    % create orange hue mask (values of [5,65]
+    % keep this larger band for reddish NMJs
+    % http://www.color-blindness.com/color-name-hue/
+    im6 = (im5 < 65 & im5 > 5);
+
+    % recast im6 to int8 create a mask
+    im7 = uint8(im6);
+
+    % extract regions that satisfy hue mask
+    % j2 represents regions that satisfies hue mask
+    j2 = im1.*repmat(im7,[1,1,3]);
+    
+    filename = strcat('TMR_masked_', path.name,'.tif');
+    imwrite(j2, filename, 'tif');
+end
