@@ -1,39 +1,37 @@
-tic
-
-% function creates
-
-
-list_of_images = [];
-
-%%
-
-for i = 1:length(list_of_images)
+for q = 1:(length(list_of_data_id))
 
     conn = database('limsdb','lims','mou53Brains!');
     curs = exec(conn,[]);
-
-    % user provides data ID
-    data_id = list_of_images(i);
+    
+    data_id = list_of_data_id(q);
 
     % retreive image file path
     sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
     curs = exec(conn,sql);
     curs = fetch(curs);
     imagefilename = curs.Data;
-
-    % create image file path
+    
     path = strcat('Z:\Converted Image Data\', imagefilename);
-
+    
     im0 = imread(char(path));
-    % im0 = imread('FN_7543_2.tif');
-
-    % recast from uint16 to uint8
     im1 = uint8(im0);
 
-    % generate file name
-    filename = strcat('Out_', int2str(data_id), '.jpg');
+    y_win = 200;
+    x_win = 200;
 
-    % save as lossy jpg
-    imwrite(im1, filename, 'jpg', 'Quality', 25);
+    [height, width, dim] = size(im1);
+
+    for i = 2:((height-1000)/1000)
+        a = i * 1000;
+        for j= 2:((width-1000)/1000)
+            b = j * 1000;
+            tile = im1(a:a + y_win, b:b+ x_win,:);
+            tile_gray = rgb2gray(tile);
+            is_black = tile_gray < 20;
+            if sum(is_black(:)) < 10000
+                filename = strcat(int2str(data_id), '_', int2str(a), '_',int2str(b), '_','.jpg');
+                imwrite(tile, filename);
+            end
+        end
+    end
 end
-toc
