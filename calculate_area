@@ -2,14 +2,14 @@
 
 tic
 
-csv_id = zeros(length(list_of_data_id), 1);
-csv_area = zeros(length(list_of_data_id), 1);
+csv_id = zeros(length(list_of_data_id), 1); % track data file id
+csv_area = zeros(length(list_of_data_id), 1); % track corresponding areas (in number of pixels)
 
 for i = 1:length(list_of_data_id) 
     
     data_id = list_of_data_id(i);
 
-    % connect to limsdb and retreive file path
+    % retrieve file path
     conn = database('limsdb','lims','mou53Brains!');
     curs = exec(conn,[]);
     sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
@@ -17,56 +17,70 @@ for i = 1:length(list_of_data_id)
     curs = fetch(curs);
     imagefilename = curs.Data;
 
-    % create image file path
+    % generate file path
     path = strcat('Z:\Converted Image Data\', imagefilename);
 
-    % load image
+    % load image into memory
     image_raw = imread(char(path));
 
-    % Step 2: extract boundary 
+    % beautify for visual inspectioin
     image_converted = uint8(image_raw);
+    
+    % convert to grayscale
+    image_gray = rgb2gray(image_converted);
 
-    % convert image to binary
-    image_bw = im2bw(image_converted, graythresh(image_converted));
+    % convert image to binary via thresholding
+    image_bw = im2bw(image_gray, .1);
 
-    % denoise noise and fill in largest tissue
+    % denoise through erode; regenerate through dilate
     se = strel('rectangle',[40 40]);
     image_bw_1 = imerode(image_bw,se);
     image_bw_2 = imdilate(image_bw_1,se);
 
-    % use a larger disk to smooth boundaries
-    se = strel('disk',[100]);
+    % smooth boundaries via disk structuring element
+    se = strel('disk',[20]);
     image_bw_3 = imdilate(image_bw_2,se);
     image_bw_4 = imdilate(image_bw_3,se);
 
     % fill in holes, if any
     image_bw_5 = imfill(image_bw_4, 'holes');
 
+    % label objects in image
+    [labels, num] = bwlabel(image_bw_5);
+    
+    % find largest object
+    tissue_properties = regionprops(labels, 'Area');
+    [~,ind] = max([tissue_properties.Area]);
 
-    %Step 3: inspect quality of mask
+    % select the object with the largest area
+    image_bw_6 = (labels == ind);
+    
+    % inspect quality of mask
     % recast to 8 bit for masking purposes
-    image_bw_6 = uint8(image_bw_5);
+    image_bw_7 = uint8(image_bw_6);
 
-    % crop image according to mask
-    image_mask = image_converted .* repmat(image_bw_6,[1,1,3]);
-
+    % crop original image using mask
+    image_mask = image_converted .* repmat(image_bw_7,[1,1,3]);
+    
     % save cropped image for visual inspection
     cropped_filename = strcat(int2str(data_id), '_cropped_','.jpg');
-    imwrite(image_mask, cropped_filename, 'jpg', 'Quality', 25);
+    imwrite(image_bw_6, cropped_filename, 'jpg', 'Quality', 5);
 
-    % save original image for inspection
+    % save original image for comparison
     original_filename = strcat(int2str(data_id), '_original_','.jpg');
-    imwrite(image_converted, original_filename, 'jpg', 'Quality', 25);
+    imwrite(image_converted, original_filename, 'jpg', 'Quality', 5);
 
-    % Step 4: calculate area of object
-    image_properties = regionprops(image_bw_5, 'Area');
+    % calculate area of largest object
+    image_properties = regionprops(image_bw_6, 'Area');
 
-    % find largest object and return object area 
+    % identify largest object and calculate corresponding area (in pixels)
     [~,ind] = max([image_properties.Area]);
     
+    % store values in arrays
     csv_id(i) = data_id;
     csv_area(i) = image_properties(ind).Area;
     
+    % write to disk 
     section_area_calculations = cat(2, csv_id, csv_area);
     csvwrite('section_area_calculations.csv', section_area_calculations)
 end
