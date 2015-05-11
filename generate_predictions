@@ -1,11 +1,10 @@
-tic
+function predictions_array = generate_predictions_array(datafileid)
 
-for q = 1:length(list_of_data_id)
 
     %% Step 1: connect to limsdb
     conn = database('limsdb','lims','mou53Brains!');
     curs = exec(conn,[]);
-    data_id = list_of_data_id(q);
+    data_id = datafileid;
 
     % retreive path
     sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
@@ -148,7 +147,7 @@ for q = 1:length(list_of_data_id)
         imwrite(VACHT_patch, VACHT_filename, 'tif');
 
     end
-     
+    
 end
 
-toc
+
