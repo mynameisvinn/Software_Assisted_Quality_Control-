@@ -1,10 +1,10 @@
-function predictions_array = generate_predictions_array(datafileid)
+function tmr_predictions_4 = predict_compiled(data_id)
 
 
     %% Step 1: connect to limsdb
     conn = database('limsdb','lims','mou53Brains!');
+    % conn = database('limsdb', 'lims', 'mou53Brains!', 'Vendor', 'MySQL', 'Server', '10.10.10.11'); % JDBC driver
     curs = exec(conn,[]);
-    data_id = datafileid;
 
     % retreive path
     sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
@@ -13,6 +13,7 @@ function predictions_array = generate_predictions_array(datafileid)
     imagefilename = curs.Data;
     path = strcat('Z:\Converted Image Data\', imagefilename);
 
+    disp('######*******************')
     %% Step 2: generate predictions
 
     im0 = imread(char(path));
@@ -65,7 +66,8 @@ function predictions_array = generate_predictions_array(datafileid)
 
     % for weightedcentroids calculation, => mask (logic) first, followed by grayscale channel
     tmr_predictions_1 = regionprops(j4, j3, 'WeightedCentroid', 'Area');
-
+    
+    disp('##########***************')
     %% Step 3: minimize TMR FPs
 
     % size filter to remove smaller image artifacts
@@ -98,34 +100,62 @@ function predictions_array = generate_predictions_array(datafileid)
         end
     end
 
-
+    disp('##############***********')
     %% Step 4: extract TMR predictions from structure
 
     % preallocate arrays
+    user_id = zeros(length(tmr_predictions_3), 1);
+    data_file_id = zeros(length(tmr_predictions_3), 1);
+    counter_id = zeros(length(tmr_predictions_3), 1);
+    tile_id = zeros(length(tmr_predictions_3), 1); % tile_ID is required
     tmr_predictions_x = zeros(length(tmr_predictions_3), 1);
     tmr_predictions_y = zeros(length(tmr_predictions_3), 1);
-    tmr_predictions_tileID = zeros(length(tmr_predictions_3), 1);
-
-    % grab dimensions for tileID calc
-    [height, width, z] = size(im1);
 
     % populate arrays with coordinates of TMR predictions
     for index_i_2 = 1:length(tmr_predictions_3)
 
         tmr_predictions_x(index_i_2) = round(tmr_predictions_3(index_i_2).WeightedCentroid(1));
         tmr_predictions_y(index_i_2) = round(tmr_predictions_3(index_i_2).WeightedCentroid(2));
-        tmr_predictions_tileID(index_i_2) = CoordinatesToTileNumber(round(tmr_predictions_3(index_i_2).WeightedCentroid(1)),round(tmr_predictions_3(index_i_2).WeightedCentroid(2)),width ,height);
 
     end
 
     % zip arrays
-    tmr_predictions_4 = cat(2, tmr_predictions_x, tmr_predictions_y, tmr_predictions_tileID);
-    csvwrite('tmr_predictions.csv', tmr_predictions_4)
+    tmr_predictions_4 = cat(2, tmr_predictions_x, tmr_predictions_y);
+    % csvwrite('tmr_predictions.csv', tmr_predictions_4)
+    
+    disp('###################******')
+    
+    %% Step 6: write to db
 
+    conn = database('limsdb','lims','mou53Brains!'); % establish connection
+    % conn = database('limsdb', 'lims', 'mou53Brains!', 'Vendor', 'MySQL', 'Server', '10.10.10.11');
+    
+    % construct table
+    % data_file_id(data_file_id ==0 ) = str2num(data_id);
+    data_file_id(data_file_id ==0 ) = data_id;
+    user_id(user_id == 0 ) = 8;
+    counter_id(counter_id == 0 ) = 1; % 1 indicates red channel
+    tile_id(tile_id == 0 ) = 1; % 1 is a placeholder tileID
+    tmr_predictions_5 = cat(2, data_file_id, user_id, counter_id, tile_id, tmr_predictions_x, tmr_predictions_y);
+    
+    % define features
+    colnames = {'data_file_id', 'user_id', 'counter_id', 'tile_id', 'click_location_x_coordinate', 'click_location_y_coordinate'};
+    
+    % combine features and data into table
+    data_table = array2table(tmr_predictions_5, 'VariableNames', colnames);
+
+    % insert table to limsdb
+    insert(conn,'data_file_click',colnames,data_table)
+    
+    % close connection
+    commit(conn);
+    close(conn);
+
+    disp('#######################**')
     %% Step 5: generate patches
 
     TMR_patch_size = 50;
-    VACHT_patch_size = 25;
+    VACHT_patch_size = 50;
 
     for index_i_6 = 1:length(tmr_predictions_4)
 
@@ -135,7 +165,8 @@ function predictions_array = generate_predictions_array(datafileid)
         % create TMR patches
 
         tmr_patch = im1(b-TMR_patch_size: b +TMR_patch_size, a - TMR_patch_size: a + TMR_patch_size,:);
-        tmr_filename = strcat('TMR_', int2str(data_id), '_', int2str(index_i_6),'.tif');
+        tmr_patch(:,:,2:3) = 0;
+        tmr_filename = strcat('TMR_', data_id, '_', int2str(index_i_6),'.tif');
         imwrite(tmr_patch, tmr_filename, 'tif');
 
         % create VACHT patches
@@ -143,10 +174,12 @@ function predictions_array = generate_predictions_array(datafileid)
         VACHT_patch = im1(b-VACHT_patch_size: b +VACHT_patch_size, a - VACHT_patch_size: a + VACHT_patch_size,:);  
         VACHT_patch(:,:,1) = 0;
         VACHT_patch(:,:,3) = 0;
-        VACHT_filename = strcat('VACHT_', int2str(data_id), '_', int2str(index_i_6),'.tif');
+        VACHT_filename = strcat('VACHT_', data_id, '_', int2str(index_i_6),'.tif');
         imwrite(VACHT_patch, VACHT_filename, 'tif');
 
     end
+    
+    disp('########COMPLETE#########')
     
 end
 
