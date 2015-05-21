@@ -84,7 +84,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     disp('***updating db with TMR predictions***')
     
     data_file_id(data_file_id ==0 ) = data_id; 
-    user_id(user_id == 0 ) = 8;
+    user_id(user_id == 0 ) = 7;
     counter_id(counter_id == 0 ) = 1; % 1 indicates red channel
         %When we eventually make counter_id dynamic, we will use these
         %queries to get the appropriate counter_id to use:
@@ -114,6 +114,8 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     insert(conn,'data_file_click',colnames,data_table)
 
     disp('***generating vacht predictions***')
+    
+    commit(conn);
     
     VACHT_patch_size = 50;
     im_16bit = im0 * 2^6;
@@ -197,7 +199,9 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     data_table = array2table(vacht_predictions_combined, 'VariableNames', colnames);
 
     insert(conn,'data_file_click',colnames,data_table)
-
+    
+    commit(conn);
+    
     disp('***generating patches for visual inspection***')
 
     TMR_patch_size = 50;
@@ -229,13 +233,15 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         row = curs.Data;
         data_file_click_id = row{1};
         
-        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width) values (?, ?, ?, ?, ?)'];
+        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width, data_file_id)' ...
+                         'values (?, ?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
         StatementObject.setObject(1,tmr_patch_data);
         StatementObject.setInt(2, data_file_click_id);
         StatementObject.setString(3, tmr_filename);
         StatementObject.setInt(4, m);
         StatementObject.setInt(5, n);
+        StatementObject.setInt(6, data_id);
         StatementObject.execute
         close(StatementObject)
         
@@ -270,13 +276,15 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         row = curs.Data;
         data_file_click_id = row{1};
         
-        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width) values (?, ?, ?, ?, ?)'];
+        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width, data_file_id) ' ... 
+                         'values (?, ?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
         StatementObject.setObject(1,VACHT_patch_data);
         StatementObject.setInt(2, data_file_click_id);
         StatementObject.setString(3, VACHT_filename);
         StatementObject.setInt(4, m);
         StatementObject.setInt(5, n);
+        StatementObject.setInt(6, data_id);
         StatementObject.execute
         close(StatementObject)
 
