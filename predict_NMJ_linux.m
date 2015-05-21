@@ -202,9 +202,6 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
 
     TMR_patch_size = 50;
 
-    nmj_candidate_tablename = 'saqc_candidate_nmj_region';
-    nmj_candidate_colnames = {'image'};
-
     for idx_i_6 = 1:length(tmr_predictions_4)
 
         tmr_a = round(tmr_predictions_4(idx_i_6,5)); % 5 represents x coordinate
@@ -214,15 +211,17 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         
         tmr_patch(:,:,2:3) = 0;
         tmr_patch(:,:,1) = tmr_patch(:,:,1) * 2.5;
+        [m,n,q] = size(tmr_patch);
         tmr_filename = strcat('TMR_', num2str(data_id), '_', int2str(idx_i_6),'.png');
         imwrite(tmr_patch, tmr_filename, 'png');
+
         
         tmr_patch_png = fopen(tmr_filename, 'r');
         tmr_patch_data = fread(tmr_patch_png, inf, '*uint16', 'b');
         fclose(tmr_patch_png);        
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(tmr_a) '" ' ... 
-               'AND click_location_y_coordinate = "' num2str(tmr_b) '" AND counter_id = 1 AND user_id = 7 ' ... 
+               'AND click_location_y_coordinate = "' num2str(tmr_b) '" AND counter_id = 1 AND user_id = 7 ' ...
                'ORDER BY last_changed_time DESC ' ...
                'LIMIT 1'];
         curs = exec(conn,sql);
@@ -230,10 +229,13 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         row = curs.Data;
         data_file_click_id = row{1};
         
-        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id) values (?, ?)'];
+        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width) values (?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
         StatementObject.setObject(1,tmr_patch_data);
         StatementObject.setInt(2, data_file_click_id);
+        StatementObject.setString(3, tmr_filename);
+        StatementObject.setInt(4, m);
+        StatementObject.setInt(5, n);
         StatementObject.execute
         close(StatementObject)
         
@@ -251,6 +253,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         VACHT_patch(:,:,1) = 0;
         VACHT_patch(:,:,3) = 0;
         VACHT_patch(:,:,2) = VACHT_patch(:,:,2) * 2.5; % if you change 2.5 boost factor, youll need to change vacht threshold
+        [m,n,q] = size(VACHT_patch);
         VACHT_filename = strcat('VACHT_', num2str(data_id), '_', int2str(idx_i_7),'.png');
         imwrite(VACHT_patch, VACHT_filename, 'png');
         
@@ -267,10 +270,13 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         row = curs.Data;
         data_file_click_id = row{1};
         
-        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id) values (?, ?)'];
+        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width) values (?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
         StatementObject.setObject(1,VACHT_patch_data);
         StatementObject.setInt(2, data_file_click_id);
+        StatementObject.setString(3, VACHT_filename);
+        StatementObject.setInt(4, m);
+        StatementObject.setInt(5, n);
         StatementObject.execute
         close(StatementObject)
 
