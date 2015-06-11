@@ -1,5 +1,10 @@
 function tmr_predictions_4 = predict_NMJ_linux(data_id)
 
+    import java.io.File;
+    import java.io.FileInputStream;
+    import java.io.IOException;
+    import java.io.InputStream;
+
     disp('***connecting with db***')
 
     conn = database('limsdb', 'lims', 'mou53Brains!', 'Vendor', 'MySQL', 'Server', '10.10.10.12'); % JDBC driver
@@ -221,7 +226,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
 
         
         tmr_patch_png = fopen(tmr_filename, 'r');
-        tmr_patch_data = fread(tmr_patch_png, inf, '*uint16', 'b');
+        tmr_png_stream = FileInputStream(File(tmr_filename));
         fclose(tmr_patch_png);        
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(tmr_a) '" ' ... 
@@ -236,7 +241,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width, data_file_id)' ...
                          'values (?, ?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
-        StatementObject.setObject(1,tmr_patch_data);
+        StatementObject.setBlob(1,tmr_png_stream);
         StatementObject.setInt(2, data_file_click_id);
         StatementObject.setString(3, tmr_filename);
         StatementObject.setInt(4, m);
@@ -264,7 +269,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         imwrite(VACHT_patch, VACHT_filename, 'png');
         
         VACHT_patch_png = fopen(VACHT_filename, 'r');
-        VACHT_patch_data = fread(VACHT_patch_png, inf, '*uint16', 'b');
+        VACHT_png_stream = FileInputStream(File(VACHT_filename));
         fclose(VACHT_patch_png);
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(vacht_a) '" ' ...
@@ -279,7 +284,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width, data_file_id) ' ... 
                          'values (?, ?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
-        StatementObject.setObject(1,VACHT_patch_data);
+        StatementObject.setBlob(1,VACHT_png_stream);
         StatementObject.setInt(2, data_file_click_id);
         StatementObject.setString(3, VACHT_filename);
         StatementObject.setInt(4, m);
