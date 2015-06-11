@@ -223,11 +223,9 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         [m,n,q] = size(tmr_patch);
         tmr_filename = strcat('TMR_', num2str(data_id), '_', int2str(idx_i_6),'.png');
         imwrite(tmr_patch, tmr_filename, 'png');
-
         
-        tmr_patch_png = fopen(tmr_filename, 'r');
         tmr_png_stream = FileInputStream(File(tmr_filename));
-        fclose(tmr_patch_png);        
+        delete(tmr_filename);
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(tmr_a) '" ' ... 
                'AND click_location_y_coordinate = "' num2str(tmr_b) '" AND counter_id = 1 AND user_id = 7 ' ...
@@ -268,9 +266,8 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         VACHT_filename = strcat('VACHT_', num2str(data_id), '_', int2str(idx_i_7),'.png');
         imwrite(VACHT_patch, VACHT_filename, 'png');
         
-        VACHT_patch_png = fopen(VACHT_filename, 'r');
         VACHT_png_stream = FileInputStream(File(VACHT_filename));
-        fclose(VACHT_patch_png);
+        delete(VACHT_filename);
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(vacht_a) '" ' ...
                'AND click_location_y_coordinate = "' num2str(vacht_b) '" AND counter_id = 2 AND user_id = 7 ' ...
