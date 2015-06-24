@@ -236,7 +236,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         row = curs.Data;
         data_file_click_id = row{1};
         
-        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width, data_file_id)' ...
+        insertcommand = ['INSERT INTO saqc_candidate_feature (image, data_file_click_id, name, height, width, data_file_id)' ...
                          'values (?, ?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
         StatementObject.setBlob(1,tmr_png_stream);
@@ -278,7 +278,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         row = curs.Data;
         data_file_click_id = row{1};
         
-        insertcommand = ['INSERT INTO saqc_candidate_nmj_region (image, data_file_click_id, name, height, width, data_file_id) ' ... 
+        insertcommand = ['INSERT INTO saqc_candidate_feature (image, data_file_click_id, name, height, width, data_file_id) ' ... 
                          'values (?, ?, ?, ?, ?, ?)'];
         StatementObject = db_handle.prepareStatement(insertcommand);
         StatementObject.setBlob(1,VACHT_png_stream);
