@@ -116,6 +116,11 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     
     data_table = array2table(tmr_predictions_4, 'VariableNames', colnames);
 
+    sql = ['DELETE FROM data_file_click WHERE data_file_id = "' num2str(data_id) '"' ...
+            'AND user_id = 7'];
+    exec(conn,sql);
+    commit(conn);
+
     insert(conn,'data_file_click',colnames,data_table)
 
     disp('***generating vacht predictions***')
@@ -208,6 +213,10 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     commit(conn);
     
     disp('***generating patches for visual inspection***')
+
+    sql = ['DELETE FROM saqc_candidate_feature WHERE data_file_id = "' num2str(data_id) '"'];
+    exec(conn,sql);
+    commit(conn);
 
     TMR_patch_size = 50;
 
