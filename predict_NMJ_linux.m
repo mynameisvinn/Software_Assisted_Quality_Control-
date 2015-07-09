@@ -9,12 +9,28 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
 
     conn = database('limsdb', 'lims', 'mou53Brains!', 'Vendor', 'MySQL', 'Server', '10.10.10.12'); % JDBC driver
     db_handle = conn.Handle;
+    action_url = '';
     set(conn, 'AutoCommit', 'off'); % turn autocommit off; better to commit manually
     sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
     curs = exec(conn,sql);
     curs = fetch(curs);
     imagefilename = curs.Data;
     path = strcat('/storage/Clarapath Local Share/Converted Image Data Test/', imagefilename);
+    feature_count = 0;
+    
+    sql = ['DELETE FROM saqc_data_file_status WHERE data_file_id = "' num2str(data_id) '"'...
+            'AND status_id IN (5,6,7)'];
+    exec(conn,sql);
+    commit(conn);
+    
+    data = {data_id, 6, datestr(now,'yyyy-mm-dd HH:MM:SS')};
+    tablename = 'saqc_data_file_status';
+    colnames = {'data_file_id', 'status_id', 'start_time'};
+    fastinsert(conn,tablename,colnames,data);
+    
+    commit(conn);
+    
+    
 
     disp('***generating TMR predictions***')
 
@@ -221,7 +237,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     TMR_patch_size = 50;
 
     for idx_i_6 = 1:length(tmr_predictions_4)
-
+        feature_count = feature_count + 1;
         tmr_a = round(tmr_predictions_4(idx_i_6,5)); % 5 represents x coordinate
         tmr_b = round(tmr_predictions_4(idx_i_6,6)); % 6 represents x coordinate
 
@@ -263,7 +279,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     
     
     for idx_i_7 = 1:length(vacht_predictions_x)
-    
+        feature_count = feature_count + 1;
         vacht_a = round(vacht_predictions_x(idx_i_7)); % 5 represents x coordinate
         vacht_b = round(vacht_predictions_y(idx_i_7)); % 6 represents x coordinate
 
@@ -300,6 +316,27 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
         close(StatementObject)
 
     end
+    
+    sql = ['DELETE FROM saqc_automated_detection_queue WHERE data_file_id = "' num2str(data_id) '"'];
+    exec(conn,sql);
+    commit(conn);
+    
+    if(feature_count <= 150)
+        action_url = strcat('<a href="http://10.10.10.12/staticfile/feature_qc_collage.html?data_file_id=', num2str(data_id), '"> FEATURE QC </a>');
+    else
+        action_url = strcat('<a href="http://10.10.10.12/staticfile/djatoka_viewer_v3.html?data_file_id=', num2str(data_id), '&analysis=y"> MANUAL QC </a>');
+    end
+    
+    data = {data_id, 7, datestr(now,'yyyy-mm-dd HH:MM:SS'), datestr(now,'yyyy-mm-dd HH:MM:SS'), action_url};
+    tablename = 'saqc_data_file_status';
+    colnames = {'data_file_id', 'status_id', 'start_time', 'end_time', 'action_url'};
+    fastinsert(conn,tablename,colnames,data);
+    
+    data = {datestr(now,'yyyy-mm-dd HH:MM:SS')};
+    colnames = {'end_time'};
+    whereclause = strcat('where data_file_id = "', num2str(data_id), '"', ' AND status_id = 6');
+        
+    update(conn,tablename,colnames,data,whereclause);
     
     commit(conn);
     close(conn);
