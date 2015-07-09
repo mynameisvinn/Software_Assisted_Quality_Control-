@@ -7,7 +7,7 @@ using namespace cv;
 using namespace std;
 
 Mat image1, image2, imagegray1, imagegray2, imageresult1, imageresult2;
-vector<vector<Point>>contours1, contours2; // vector of vector of points
+vector<vector<Point>>contours1, contours2; // vector of vector of points; C++ has a vector class unlike C
 vector<Vec4i>hierarchy1, hierarchy2; // idx for contours
 
 double score; // similarity score
@@ -22,7 +22,7 @@ int main(int argc, const char** argv)
 	// argv = array of command line arguments
 
 	// read file into memory
-	image1 = imread(argv[1], 1);
+	image1 = imread(argv[1], 1); // 0th element in array refers to script name
 	image2 = imread(argv[2], 1);
 
 	// convert image to grayscale
@@ -32,7 +32,7 @@ int main(int argc, const char** argv)
 	// detect edges
 	Canny(imagegray1, imageresult1, thresh, thresh * 2);
 	Canny(imagegray2, imageresult2, thresh, thresh * 2);
-	
+
 	// call calculate hu moments to match shapes
 	calculate_hu(imageresult1, imageresult2);
 	return 0;
@@ -58,7 +58,7 @@ int calculate_hu(Mat imageresult1, Mat imageresult2){
 			largest_area_img1 = a;
 			largest_contour_index_img1 = i;                //Store the index of largest contour
 		}
-	}	
+	}
 
 	// create blank screen for displaying image 1's largest contour
 	Mat dst1(imageresult1.rows, imageresult1.cols, CV_8UC1, Scalar::all(0));
@@ -109,4 +109,3 @@ int calculate_hu(Mat imageresult1, Mat imageresult2){
 
 	return 0;
 }
-
