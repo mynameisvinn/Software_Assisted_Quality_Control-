@@ -236,7 +236,7 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
 
     TMR_patch_size = 50;
 
-    for idx_i_6 = 1:length(tmr_predictions_4)
+    for idx_i_6 = 1:length(tmr_predictions_4(:,1))
         feature_count = feature_count + 1;
         tmr_a = round(tmr_predictions_4(idx_i_6,5)); % 5 represents x coordinate
         tmr_b = round(tmr_predictions_4(idx_i_6,6)); % 6 represents x coordinate
