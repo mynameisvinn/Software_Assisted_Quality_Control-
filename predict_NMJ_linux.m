@@ -1,5 +1,5 @@
 function tmr_predictions_4 = predict_NMJ_linux(data_id)
-
+try
     import java.io.File;
     import java.io.FileInputStream;
     import java.io.IOException;
@@ -342,6 +342,17 @@ function tmr_predictions_4 = predict_NMJ_linux(data_id)
     close(conn);
     
     disp('***end of job***')
+    exit;
+    
+catch ME
+    data = {data_id, 15, datestr(now,'yyyy-mm-dd HH:MM:SS'), datestr(now,'yyyy-mm-dd HH:MM:SS')};
+    tablename = 'saqc_data_file_status';
+    colnames = {'data_file_id', 'status_id', 'start_time', 'end_time'};
+    fastinsert(conn, tablename, colnames, data);
+    commit(conn);
+    close(conn);
+    exit;
+end
 end
 
 
