@@ -1,0 +1,66 @@
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <stdio.h>
+#include <iostream>
+#include <cmath>
+
+/**
+function: identify mis-scanned images by inspecting borders
+@version 1.0 7/20/15
+*/
+
+using namespace cv;
+using namespace std;
+
+
+Mat image, image_gray;
+int first_row, last_row, first_col, last_col;
+double height_ratio, width_ratio;
+
+int main(int argc, const char** argv)
+{
+
+	image = imread(argv[1], 1);
+	
+	// show actual image
+	imshow("actual", image);
+	waitKey(0);
+	destroyWindow("actual");
+
+	// convert to grayscale and display
+	cvtColor(image, image_gray, CV_BGR2GRAY);
+	imshow("grayscale", image_gray);
+	waitKey(0);
+	destroyWindow("grayscale");
+	
+	// grab dimensions for slicing
+	cout << "image dimensions \n" << image_gray.size() << "\n";
+	
+	// grab first/last rows & columns for indices
+	first_row = 0;
+	last_row = image.rows - 1;
+	first_col = 0;
+	last_col = image.cols - 1;
+
+	// inspect height ratio
+	height_ratio = abs (1 - (sum(image_gray.row(last_row))(0) / sum(image_gray.row(first_row))(0)));
+
+	if (height_ratio > 5){
+		cout << "HEIGHT BORDER COMPONENT: " << height_ratio << "\n";
+	}
+
+	// inspect width ratio
+	width_ratio = abs (1 - sum(image_gray.col(last_col))(0) / sum(image_gray.col(0))(0));
+
+	if (width_ratio > 5){
+		cout << "WIDTH BORDER COMPONENT: " << width_ratio << "\n";
+	}
+	
+	// inspect pixel intensities
+	cout << "pixel intensities, first row: " << sum(image_gray.row(0))(0) << "\n";
+	cout << "pixel intensities, last row: " << sum(image_gray.row(last_row))(0) << "\n";
+	cout << "pixel intensities, first column: " << sum(image_gray.col(0))(0) << "\n";
+	cout << "pixel intensities, last column: " << sum(image_gray.col(last_col))(0) << "\n";
+	
+	return 0;
+}
