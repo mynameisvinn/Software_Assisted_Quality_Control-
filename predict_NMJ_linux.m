@@ -7,7 +7,7 @@ try
 
     disp('***connecting with db***')
 
-    conn = database('limsdb', 'lims', 'mou53Brains!', 'Vendor', 'MySQL', 'Server', '10.10.10.12'); % JDBC driver
+    conn = database('limsdb', 'lims', 'mou53Brains!', 'Vendor', 'MySQL', 'Server', '10.10.10.11'); % JDBC driver
     db_handle = conn.Handle;
     action_url = '';
     set(conn, 'AutoCommit', 'off'); % turn autocommit off; better to commit manually
@@ -15,7 +15,7 @@ try
     curs = exec(conn,sql);
     curs = fetch(curs);
     imagefilename = curs.Data;
-    path = strcat('/storage/Clarapath Local Share/Converted Image Data Test/', imagefilename);
+    path = strcat('/storage/Clarapath Local Share/Converted Image Data/', imagefilename);
     feature_count = 0;
     
     sql = ['DELETE FROM saqc_data_file_status WHERE data_file_id = "' num2str(data_id) '"'...
@@ -105,7 +105,7 @@ try
     disp('***updating db with TMR predictions***')
     
     data_file_id(data_file_id ==0 ) = data_id; 
-    user_id(user_id == 0 ) = 7;
+    user_id(user_id == 0 ) = 8;
     counter_id(counter_id == 0 ) = 1; % 1 indicates red channel
         %When we eventually make counter_id dynamic, we will use these
         %queries to get the appropriate counter_id to use:
@@ -133,7 +133,7 @@ try
     data_table = array2table(tmr_predictions_4, 'VariableNames', colnames);
 
     sql = ['DELETE FROM data_file_click WHERE data_file_id = "' num2str(data_id) '"' ...
-            'AND user_id = 7'];
+            'AND user_id = 8'];
     exec(conn,sql);
     commit(conn);
 
@@ -212,7 +212,7 @@ try
     disp('***udpating db with vacht predictions***')
 
     data_file_id(data_file_id ==0 ) = data_id; 
-    user_id(user_id == 0 ) = 7;
+    user_id(user_id == 0 ) = 8;
     counter_id(counter_id == 0 ) = 2; % 2 indicates green channel
     annotation_circle_radius_in_pixels(annotation_circle_radius_in_pixels == 0) = 10; 
     analytical_protocol_counter_set_id(analytical_protocol_counter_set_id == 0) = 1;
@@ -265,7 +265,7 @@ try
         delete(tmr_filename);
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(tmr_a) '" ' ... 
-               'AND click_location_y_coordinate = "' num2str(tmr_b) '" AND counter_id = 1 AND user_id = 7 ' ...
+               'AND click_location_y_coordinate = "' num2str(tmr_b) '" AND counter_id = 1 AND user_id = 8 ' ...
                'ORDER BY last_changed_time DESC ' ...
                'LIMIT 1'];
         curs = exec(conn,sql);
@@ -314,7 +314,7 @@ try
         delete(VACHT_filename);
         
         sql = ['SELECT id FROM data_file_click WHERE click_location_x_coordinate = "' num2str(vacht_a) '" ' ...
-               'AND click_location_y_coordinate = "' num2str(vacht_b) '" AND counter_id = 2 AND user_id = 7 ' ...
+               'AND click_location_y_coordinate = "' num2str(vacht_b) '" AND counter_id = 2 AND user_id = 8 ' ...
                'ORDER BY last_changed_time DESC ' ...
                'LIMIT 1'];
         curs = exec(conn,sql);
