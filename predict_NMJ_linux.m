@@ -235,12 +235,24 @@ try
     commit(conn);
 
     TMR_patch_size = 50;
+    
+    % grab image dimensions prior to cropping
+    dimensions = size(im0);
+    image_height = dimensions(1);
+    image_width = dimensions(2);
+    
 
     for idx_i_6 = 1:length(tmr_predictions_4(:,1))
         feature_count = feature_count + 1;
         tmr_a = round(tmr_predictions_4(idx_i_6,5)); % 5 represents x coordinate
         tmr_b = round(tmr_predictions_4(idx_i_6,6)); % 6 represents x coordinate
-
+        
+        % if patch is out of bounds, return control to loop
+        if (tmr_b-TMR_patch_size < 0) || (tmr_a - TMR_patch_size < 0) || (tmr_b +TMR_patch_size > height) || (tmr_a + TMR_patch_size > width)
+            continue
+        end
+        
+        % otherwise, generate tmr patches
         tmr_patch = im_16bit(tmr_b-TMR_patch_size: tmr_b +TMR_patch_size, tmr_a - TMR_patch_size: tmr_a + TMR_patch_size,:);
         
         tmr_patch(:,:,2:3) = 0;
@@ -283,6 +295,13 @@ try
         vacht_a = round(vacht_predictions_x(idx_i_7)); % 5 represents x coordinate
         vacht_b = round(vacht_predictions_y(idx_i_7)); % 6 represents x coordinate
 
+        % if patch is out of bounds, return control to loop
+        if (vacht_b-VACHT_patch_size < 0) || (vacht_a - VACHT_patch_size < 0) || (vacht_b +VACHT_patch_size> height) || (vacht_a + VACHT_patch_size > width)
+            continue
+        end
+        
+        % otherwise, generate vatch patches
+        
         VACHT_patch = im_16bit(vacht_b-VACHT_patch_size: vacht_b +VACHT_patch_size, vacht_a - VACHT_patch_size: vacht_a + VACHT_patch_size,:);  
         VACHT_patch(:,:,1) = 0;
         VACHT_patch(:,:,3) = 0;
