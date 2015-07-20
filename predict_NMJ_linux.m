@@ -236,7 +236,7 @@ try
 
     TMR_patch_size = 50;
     
-    % grab image dimensions prior to cropping
+    % grab image dimensions prior to cropping (subscript comparison)
     dimensions = size(im0);
     image_height = dimensions(1);
     image_width = dimensions(2);
