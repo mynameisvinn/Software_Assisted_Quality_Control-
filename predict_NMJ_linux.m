@@ -341,9 +341,9 @@ try
     commit(conn);
     
     if(feature_count <= 150)
-        action_url = strcat('<a href="http://10.10.10.12/staticfile/feature_qc_collage.html?data_file_id=', num2str(data_id), '"> FEATURE QC </a>');
+        action_url = strcat('<a href="http://10.10.10.11/staticfile/feature_qc_collage.html?data_file_id=', num2str(data_id), '"> FEATURE QC </a>');
     else
-        action_url = strcat('<a href="http://10.10.10.12/staticfile/djatoka_viewer_v3.html?data_file_id=', num2str(data_id), '&analysis=y"> MANUAL QC </a>');
+        action_url = strcat('<a href="http://10.10.10.11/staticfile/djatoka_viewer_v3.html?data_file_id=', num2str(data_id), '&analysis=y"> MANUAL QC </a>');
     end
     
     data = {data_id, 7, datestr(now,'yyyy-mm-dd HH:MM:SS'), datestr(now,'yyyy-mm-dd HH:MM:SS'), action_url};
@@ -356,7 +356,17 @@ try
     whereclause = strcat('where data_file_id = "', num2str(data_id), '"', ' AND status_id = 6');
         
     update(conn,tablename,colnames,data,whereclause);
-    
+
+    data = {data_id, 16, datestr(now,'yyyy-mm-dd HH:MM:SS'), datestr(now,'yyyy-mm-dd HH:MM:SS'), action_url};
+    tablename = 'saqc_data_file_status';
+    colnames = {'data_file_id', 'status_id', 'start_time', 'end_time', 'action_url'};
+    fastinsert(conn,tablename,colnames,data);
+
+    data = {data_id, 19, datestr(now,'yyyy-mm-dd HH:MM:SS'), datestr(now,'yyyy-mm-dd HH:MM:SS'), action_url};
+    tablename = 'saqc_data_file_status';
+    colnames = {'data_file_id', 'status_id', 'start_time', 'end_time', 'action_url'};
+    fastinsert(conn,tablename,colnames,data);
+
     commit(conn);
     close(conn);
     
