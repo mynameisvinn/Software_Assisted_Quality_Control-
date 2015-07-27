@@ -389,6 +389,8 @@ try
     exit;
     
 catch ME
+    msg_string = getReport(ME);
+    disp(msg_string)
     data = {data_id, 15, datestr(now,'yyyy-mm-dd HH:MM:SS'), datestr(now,'yyyy-mm-dd HH:MM:SS')};
     tablename = 'saqc_data_file_status';
     colnames = {'data_file_id', 'status_id', 'start_time', 'end_time'};
