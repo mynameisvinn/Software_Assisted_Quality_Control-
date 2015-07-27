@@ -150,16 +150,31 @@ try
     vacht_predictions_y = zeros(1, 1);
     counter = 1;
     
+    
+    % following block retains local regions with significant vacht staining
+    % in order to reduce number of vacht false positives
+    
+    % first, grab image dimensions to determine cropping
+    dimensions = size(im0);
+    image_height = dimensions(1);
+    image_width = dimensions(2);
+    
     for idx_i_3 = 1:length(tmr_predictions_3)
         
         tmr_x_midpoint = round(tmr_predictions_3(idx_i_3).WeightedCentroid(1));
         tmr_y_midpoint = round(tmr_predictions_3(idx_i_3).WeightedCentroid(2));
         
+        % if local region is out of bounds, return control
+        if (tmr_y_midpoint - VACHT_patch_size <= 0) || (tmr_x_midpoint - VACHT_patch_size <= 0) || (tmr_y_midpoint + VACHT_patch_size >= image_height) || (tmr_x_midpoint + VACHT_patch_size >= image_width)
+            continue
+        end
         
+        % otherwise, exaxmine local features for vacht stain intensity
         vacht_patch = im_16bit(tmr_y_midpoint - VACHT_patch_size: tmr_y_midpoint + VACHT_patch_size, tmr_x_midpoint - VACHT_patch_size: tmr_x_midpoint + VACHT_patch_size,2) * 2.5;
         
         high_vacht_patch = vacht_patch > 25000;
         
+        % if there is sufficient vacht staining, keep predictions
         if sum(high_vacht_patch(:)) > 0
             vacht_predictions_x(counter, 1) = tmr_x_midpoint;
             vacht_predictions_y(counter, 1) = tmr_y_midpoint;
@@ -248,7 +263,7 @@ try
         tmr_b = round(tmr_predictions_4(idx_i_6,6)); % 6 represents x coordinate
         
         % if patch is out of bounds, return control to loop
-        if (tmr_b-TMR_patch_size < 0) || (tmr_a - TMR_patch_size < 0) || (tmr_b +TMR_patch_size > height) || (tmr_a + TMR_patch_size > width)
+        if (tmr_b-TMR_patch_size <= 0) || (tmr_a - TMR_patch_size <= 0) || (tmr_b +TMR_patch_size >= image_height) || (tmr_a + TMR_patch_size >= image_width)
             continue
         end
         
@@ -296,12 +311,12 @@ try
         vacht_b = round(vacht_predictions_y(idx_i_7)); % 6 represents x coordinate
 
         % if patch is out of bounds, return control to loop
-        if (vacht_b-VACHT_patch_size < 0) || (vacht_a - VACHT_patch_size < 0) || (vacht_b +VACHT_patch_size> height) || (vacht_a + VACHT_patch_size > width)
+        % image dimensions were extracted in previous section
+        if (vacht_b-VACHT_patch_size <= 0) || (vacht_a - VACHT_patch_size <= 0) || (vacht_b +VACHT_patch_size >= image_height) || (vacht_a + VACHT_patch_size >= image_width)
             continue
         end
         
         % otherwise, generate vatch patches
-        
         VACHT_patch = im_16bit(vacht_b-VACHT_patch_size: vacht_b +VACHT_patch_size, vacht_a - VACHT_patch_size: vacht_a + VACHT_patch_size,:);  
         VACHT_patch(:,:,1) = 0;
         VACHT_patch(:,:,3) = 0;
