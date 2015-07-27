@@ -6,42 +6,40 @@
 
 /**
 function: border inspection for off-centered scans
-@version 1.0 7/20/15
 */
 
 using namespace cv;
 using namespace std;
 
 // some functions
-Mat crop_right_roi(Mat image, int padding); 
-Mat crop_left_roi(Mat image, int padding); 
-Mat extract_histogram(Mat cropped_image); 
+Mat crop_right_roi(Mat *ptr, int padding);
+Mat crop_left_roi(Mat *ptr, int padding);
+Mat extract_histogram(Mat cropped_image);
 
 
 int main(int argc, const char** argv)
 {
 
-	Mat image, cropped_image, right_border_roi_histogram, left_border_roi_histogram;
+	Mat image, cropped_image, right_border_roi_histogram, left_border_roi_histogram, *ptr;
 	int padding;
 
-	// read image and grab padding value
+	// read image path and grab padding value from command line
 	image = imread(argv[1], 1);
-	cout << "padding: "; 
-	cin >> padding;
-	
+	padding = atoi(argv[2]);
+
+	ptr = &image;
+
 	// display image
-	imshow("actual", image);
-	waitKey(0);
-	destroyWindow("actual");
+	// imshow("actual", image);
+	// waitKey(0);
+	// destroyWindow("actual");
 
-	// first, crop right ROI according to padding value
-	cropped_image = crop_right_roi(image, padding);
-
-	// then extract corresponding histogram
+	// first, crop right ROI according to padding value and extract corresponding histogram
+	cropped_image = crop_right_roi(ptr, padding);
 	right_border_roi_histogram = extract_histogram(cropped_image);
 
 	// repeat for left border
-	cropped_image = crop_left_roi(image, padding);
+	cropped_image = crop_left_roi(ptr, padding);
 	left_border_roi_histogram = extract_histogram(cropped_image);
 
 	// compare histograms using chi squared
@@ -50,42 +48,50 @@ int main(int argc, const char** argv)
 	return 0;
 }
 
-Mat crop_right_roi(Mat image, int padding){
-	
+
+Mat crop_right_roi(Mat *ptr, int padding){
+
 	Rect roi;
-	Mat image_crop;
+	Mat new_image, image_crop;
 	
-	roi.x = image.cols - padding;
+	new_image = *ptr;
+
+	roi.x = new_image.cols - padding;
 	roi.y = 0;
 	roi.width = padding;
-	roi.height = image.rows - 1;
-	image_crop = image(roi);
-	imshow("cropped", image_crop);
-	waitKey(0);
-	destroyWindow("cropped");
+	roi.height = new_image.rows - 1;
+
+	// image_crop = new_image(roi);
+	// imshow("cropped", image_crop);
+	// waitKey(0);
+	// destroyWindow("cropped");
 
 	return image_crop; // cropped image will be used to generate histogram
 }
 
-Mat crop_left_roi(Mat image, int padding){
+Mat crop_left_roi(Mat *ptr, int padding){
 
 	Rect roi;
-	Mat image_crop;
+	Mat new_image, image_crop;
+
+	new_image = *ptr;
 
 	roi.x = 0;
 	roi.y = 0;
 	roi.width = padding;
-	roi.height = image.rows - 1;
-	image_crop = image(roi);
-	imshow("cropped", image_crop);
-	waitKey(0);
-	destroyWindow("cropped");
+	roi.height = new_image.rows - 1;
+	
+	// image_crop = new_image(roi);
+	// imshow("cropped", image_crop);
+	// waitKey(0);
+	// destroyWindow("cropped");
+
 	return image_crop; // cropped image will be used to generate histogram
 }
 
 Mat extract_histogram(Mat cropped_image){
 
-	Mat roi_histogram; 
+	Mat roi_histogram;
 	vector<Mat> bgr_planes;
 	split(cropped_image, bgr_planes);
 
@@ -105,7 +111,7 @@ Mat extract_histogram(Mat cropped_image){
 	calcHist(&bgr_planes[1], 1, 0, Mat(), g_hist, 1, &histSize, &histRange, uniform, accumulate);
 	calcHist(&bgr_planes[2], 1, 0, Mat(), r_hist, 1, &histSize, &histRange, uniform, accumulate);
 
-	// Draw the histograms for B, G and R
+	// draw histograms for B, G and R
 	int hist_w = 512; int hist_h = 400;
 	int bin_w = cvRound((double)hist_w / histSize);
 
