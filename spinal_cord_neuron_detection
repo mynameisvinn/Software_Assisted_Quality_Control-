@@ -2,73 +2,118 @@
 % neurons in spinal cords.
 
 %% STEP 1: READ IMAGE
+clear
+clc
+
 tic
-path = 'Z:\Converted Image Data\85_164_2015-07-16_1_3519_-_2015-07-20_12.43.53_1_lossy.jp2';
+
+% user provides data ID
+data_id = 9093;
+
+% connect to limsdb
+conn = database('limsdb','lims','mou53Brains!');
+curs = exec(conn,[]);
+
+% retreive image file path
+sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
+curs = exec(conn,sql);
+curs = fetch(curs);
+imagefilename = curs.Data;
+
+% create image file path
+path = strcat('Z:\Converted Image Data\', imagefilename);
+
+
+
 image = imread(char(path));
 toc
-%% VISUAL INSPECTION
+%% VISUAL INSPECTION OF RAW IMAGE
 
 imshow(uint8(image))
 
 %% STEP 2: CROP IMAGE FOR EASIER HANDLING
-im0 = image(8000:12000, 6000:12000,:);
 
-%% VISUAL INSPECTION
-imshow(im0 * 2^6);
+tic
 
-%% STEP 3: SUBSET RED CHANNEL
-im1 = im0 * 2^6;
-im1_red = im1(:,:,1);
-imshowpair(im1, im1_red, 'montage');
+% preprocess
+im_recast = uint8(image);
 
-%% STEP 4: CREATE HUE MASK
-im_hsv = uint8(im0);
-im2 = rgb2hsv(im_hsv);
+im2 = rgb2hsv(im_recast);
 im3 = im2(:,:,1);
 im4 = im3 .* 360;
 im5 = uint8(im4);
-im6 = (im5 < 15& im5 > 11);
-se = strel('disk', 1);
-im6_opening = imopen(im6, se);
-im7 = uint16(im6_opening);
+im6 = (im5 < 12& im5 > 5);
+se = strel('disk', 2);
+im7 = imopen(im6, se);
+se = strel('disk', 50);
+im8 = imdilate(im7, se);
+[labels, num] = bwlabel(im8);
 
-%% VISUAL INSPECTION
-imshow(im6_opening)
+% find boundingbox for largest area
+s_1 = regionprops(labels, 'Area', 'BoundingBox');
+[~,ind] = max([s_1.Area]);
+rect = s_1(ind).BoundingBox; % rect is array containing bounding box vertices
 
+% crop image according to boundingbox of largest segment
+im0 = imcrop(image, rect); % cropping original jp2, not the uint8 image
+imshow(uint8(im0)) % uint8 for pretty display
+
+% toc
+
+%% STEP 3: SUBSET RED CHANNEL
+im1 = im0 * 2^6;
+im1_red = im1(:,:,1); %im1 is uint8 copy
+imshowpair(im1, im1_red, 'montage');
+
+%% STEP 4: CREATE HUE MASK
+% tic
+% 
+% im_hsv = uint8(im0); % im0 represents cropped original image
+% im2 = rgb2hsv(im_hsv);
+% im3 = im2(:,:,1);
+% im4 = im3 .* 360;
+% im5 = uint8(im4);
+% im6 = (im5 < 15& im5 > 11);
+% se = strel('disk', 1);
+% im6_opening = imopen(im6, se);
+% im7 = uint16(im6_opening);
+% 
+% toc
 
 %% STEP 5: CREATE VALUE MASK
-h1 = im2(:,:,3);
-h2 = h1 > .95;
-h3 = double(h2);
-imshow(h3);
-
-%% VISUAL INSPECTION: COMPARE HUE & VALUE MASKS
-imshowpair(im6_opening, h3, 'montage')
+v1 = im2(:,:,3); % im2 is the HSV array
+v2 = v1 > .95;
+v3 = double(v2);
+imshow(v3);
 
 %% STEP 6: SUBSETTING BY HUE
+% ------------NOT NECESSARY SINCE WE SUBSET BY HUE DURING CROPPING--------
 % j2 represents regions of red channel that satisfies hue mask
-j2 = im1_red .* im7;
-imshow(j2)
-%% STEP 7: FOLLOWED BY SUBSETTING BY VALUE
-% j3 represents regions of red channel that satisfies hue mask and value
-% mask
+% j2 = im1_red .* im7;
+% imshow(j2)
+%% STEP 7: SUBSETTING BY VALUE
 
-j3 = j2 .* uint16(h3);
-imshowpair(j2, j3, 'montage')
+j3 = im1_red .* uint16(v3); % im1_red represents red channel of original image
 
-%% STEP 8: SUBSET BY RED VALUES 
-j4 = j3 > 40000;
-imshow(j4)
+%% STEP 8: SUBSETTING BY RED INTENSITY
+j4 = j3 > 20000;
+imshowpair(j3, j4, 'montage')
+
+
 %% STEP 9: DILATE TO REDUCE DOUBLE COUNTING
 
 se = strel('disk', 10);
 j5 = imdilate(j4, se);
 imshow(j5)
+
 %% STEP 10: GRAB PEAKS
-s = regionprops(j5, 'Centroid', 'Area');
-s_2 = s([s.Area] >800);
+
+s_1 = regionprops(j5, 'Centroid', 'Area');
+s_2 = s_1([s_1.Area] > 800);
+
 %% STEP 11: PLOT
-imshow(im1);
+
+imshow(uint8(im0));
 
 for i = 1:length(s_2)
     viscircles([s_2(i).Centroid(1), s_2(i).Centroid(2)], 75, 'EdgeColor', 'b')
