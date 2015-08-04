@@ -1,14 +1,11 @@
-% created on 7/20/15. see vadim's 7/20/15 email regarding counting motor
-% neurons in spinal cords.
+% created on 8/3/15. 
 
 %% STEP 1: READ IMAGE
+tic
 clear
 clc
-
-tic
-
 % user provides data ID
-data_id = 9093;
+data_id = 9266;
 
 % connect to limsdb
 conn = database('limsdb','lims','mou53Brains!');
@@ -23,100 +20,109 @@ imagefilename = curs.Data;
 % create image file path
 path = strcat('Z:\Converted Image Data\', imagefilename);
 
-
-
 image = imread(char(path));
 toc
-%% VISUAL INSPECTION OF RAW IMAGE
-
+%% inspect image
 imshow(uint8(image))
 
-%% STEP 2: CROP IMAGE FOR EASIER HANDLING
+%% crop image since we only want to find the largest object
+% image_cropped = image(10000:13000,10000:15000,: );
+% image_cropped_uint8 = uint8(image_cropped);
+% imshow(image_cropped_uint8)
+tic
+image_small = imresize(image, .1);
+foo_1 = uint8(image_small);
+foo_hsv = rgb2hsv(foo_1);
+
+toc
+%%
+x1 = foo_hsv(:,:,2);
+x2 = (x1 > .8); 
+
+se = strel('disk', 30);
+x3 = imdilate(x2, se);
+
+imshow(x3);
+%%
+[labels, ~] = bwlabel(x3);
+s = regionprops(labels, 'Area', 'BoundingBox');
+[~,ind] = max([s.Area]);
+blackarea = (labels == ind);
+imshow(blackarea)
+b2 = imfill(blackarea, 'holes');
+center = foo_1.* repmat(uint8(b2),[1,1,3]);
+imshow(center);
+
+%%
+
+[lab1, ~] = bwlabel(b2);
+q = regionprops(lab1, 'BoundingBox');
+rect = q.BoundingBox; % rect is array containing bounding box vertices
+new_image = imcrop(foo_1, rect);
+imshow(new_image)
+
+
+%%%%%%%%%%%%%%%%%
+%% create value and hue masks
 
 tic
+im_hsv = rgb2hsv(new_image);
 
-% preprocess
-im_recast = uint8(image);
-
-im2 = rgb2hsv(im_recast);
-im3 = im2(:,:,1);
-im4 = im3 .* 360;
-im5 = uint8(im4);
-im6 = (im5 < 12& im5 > 5);
-se = strel('disk', 2);
-im7 = imopen(im6, se);
-se = strel('disk', 50);
-im8 = imdilate(im7, se);
-[labels, num] = bwlabel(im8);
-
-% find boundingbox for largest area
-s_1 = regionprops(labels, 'Area', 'BoundingBox');
-[~,ind] = max([s_1.Area]);
-rect = s_1(ind).BoundingBox; % rect is array containing bounding box vertices
-
-% crop image according to boundingbox of largest segment
-im0 = imcrop(image, rect); % cropping original jp2, not the uint8 image
-imshow(uint8(im0)) % uint8 for pretty display
-
-% toc
-
-%% STEP 3: SUBSET RED CHANNEL
-im1 = im0 * 2^6;
-im1_red = im1(:,:,1); %im1 is uint8 copy
-imshowpair(im1, im1_red, 'montage');
-
-%% STEP 4: CREATE HUE MASK
-% tic
-% 
-% im_hsv = uint8(im0); % im0 represents cropped original image
-% im2 = rgb2hsv(im_hsv);
-% im3 = im2(:,:,1);
-% im4 = im3 .* 360;
-% im5 = uint8(im4);
-% im6 = (im5 < 15& im5 > 11);
-% se = strel('disk', 1);
-% im6_opening = imopen(im6, se);
-% im7 = uint16(im6_opening);
-% 
-% toc
-
-%% STEP 5: CREATE VALUE MASK
-v1 = im2(:,:,3); % im2 is the HSV array
-v2 = v1 > .95;
-v3 = double(v2);
-imshow(v3);
-
-%% STEP 6: SUBSETTING BY HUE
-% ------------NOT NECESSARY SINCE WE SUBSET BY HUE DURING CROPPING--------
-% j2 represents regions of red channel that satisfies hue mask
-% j2 = im1_red .* im7;
-% imshow(j2)
-%% STEP 7: SUBSETTING BY VALUE
-
-j3 = im1_red .* uint16(v3); % im1_red represents red channel of original image
-
-%% STEP 8: SUBSETTING BY RED INTENSITY
-j4 = j3 > 20000;
-imshowpair(j3, j4, 'montage')
-
-
-%% STEP 9: DILATE TO REDUCE DOUBLE COUNTING
-
+v1 = im_hsv(:,:,3); % im2 is the HSV array
+v2 = (v1 > .25) & (v1 < .8);
 se = strel('disk', 10);
-j5 = imdilate(j4, se);
-imshow(j5)
+v3 = imopen(v2, se);
 
-%% STEP 10: GRAB PEAKS
+imshow(v3)
 
-s_1 = regionprops(j5, 'Centroid', 'Area');
-s_2 = s_1([s_1.Area] > 800);
+% s1 = im_hsv(:,:,2); % im2 is the HSV array
+% s2 = (s1 > .6) & (s1 < .7) ;
+% s3 = imcomplement(s2);
+% 
+% mask = v3 .* s3; % mask is the intersection of value and saturation masks
+% imshow(mask)
+% 
+% h1 = im_hsv(:,:,1);
+% h2 = h1 .* 360;
+% h3 = (h2 < 35 & h2 > 20);
+% 
+% mask_2 = mask .* h3;
 
-%% STEP 11: PLOT
+% se = strel('disk', 10);
+% mask_3 = imdilate(mask_2, se);
+
+toc
+%%
+[labels, num] = bwlabel(v3);
+s = regionprops(labels, 'Area', 'BoundingBox');
+% find largest object
+[~,ind] = max([s.Area]);
+rect = s(ind).BoundingBox; % rect is array containing bounding box vertices
+
+% draw rectangle over object
+imshow(new_image)
+rectangle('Position',rect,'EdgeColor','r')
+
+%% crop
+im0 = imcrop(new_image, rect);
+imshow(im0)
+
+%%
+im1_red = im0(:,:,1); %im0 is cropped uint8
+j3 = im1_red > 130;
+% j3 = imextendedmax(im1_red, 10);
+se = strel('disk', 1);
+% j4 = imopen(j3, se);
+j4 = j3;
+
+imshowpair(im1_red, j4, 'montage')
+
+%%
+s_1 = regionprops(j4, 'Centroid', 'Area');
+s_2 = s_1([s_1.Area] > 1 & [s_1.Area] < 500);
 
 imshow(uint8(im0));
 
 for i = 1:length(s_2)
-    viscircles([s_2(i).Centroid(1), s_2(i).Centroid(2)], 75, 'EdgeColor', 'b')
+    viscircles([s_2(i).Centroid(1), s_2(i).Centroid(2)], 10, 'EdgeColor', 'b')
 end
-    
-    
