@@ -5,7 +5,7 @@ tic
 clear
 clc
 % user provides data ID
-data_id = 9266;
+data_id = 9268;
 
 % connect to limsdb
 conn = database('limsdb','lims','mou53Brains!');
@@ -60,8 +60,10 @@ q = regionprops(lab1, 'BoundingBox');
 rect = q.BoundingBox; % rect is array containing bounding box vertices
 new_image = imcrop(foo_1, rect);
 imshow(new_image)
-
-
+%%
+original_image_cropped = imcrop(uint8(image), rect * 10);
+imshow(original_image_cropped)
+new_image = original_image_cropped;
 %%%%%%%%%%%%%%%%%
 %% create value and hue masks
 
@@ -70,26 +72,10 @@ im_hsv = rgb2hsv(new_image);
 
 v1 = im_hsv(:,:,3); % im2 is the HSV array
 v2 = (v1 > .25) & (v1 < .8);
-se = strel('disk', 10);
+se = strel('disk', 50);
 v3 = imopen(v2, se);
 
 imshow(v3)
-
-% s1 = im_hsv(:,:,2); % im2 is the HSV array
-% s2 = (s1 > .6) & (s1 < .7) ;
-% s3 = imcomplement(s2);
-% 
-% mask = v3 .* s3; % mask is the intersection of value and saturation masks
-% imshow(mask)
-% 
-% h1 = im_hsv(:,:,1);
-% h2 = h1 .* 360;
-% h3 = (h2 < 35 & h2 > 20);
-% 
-% mask_2 = mask .* h3;
-
-% se = strel('disk', 10);
-% mask_3 = imdilate(mask_2, se);
 
 toc
 %%
@@ -109,17 +95,16 @@ imshow(im0)
 
 %%
 im1_red = im0(:,:,1); %im0 is cropped uint8
-j3 = im1_red > 130;
+j3 = im1_red > 200;
 % j3 = imextendedmax(im1_red, 10);
-se = strel('disk', 1);
-% j4 = imopen(j3, se);
-j4 = j3;
+se = strel('disk', 3);
+j4 = imopen(j3, se);
 
 imshowpair(im1_red, j4, 'montage')
 
 %%
 s_1 = regionprops(j4, 'Centroid', 'Area');
-s_2 = s_1([s_1.Area] > 1 & [s_1.Area] < 500);
+s_2 = s_1([s_1.Area] > 15 & [s_1.Area] < 5000);
 
 imshow(uint8(im0));
 
