@@ -1,38 +1,31 @@
-% script returns area (in pixels) for the largest object in image
+function [area] = calc_surfacearea(data_id, threshold, compression_ratio)
 
-tic
-
-csv_id = zeros(length(list_of_data_id), 1); % track data file id
-csv_area = zeros(length(list_of_data_id), 1); % track corresponding areas (in number of pixels)
-
-for i = 1:length(list_of_data_id) 
+    % function: for an image, calculate 2D surface area
+    % ---------------------------------------------
+    % parameters: 
+    % @data_id: 
+    % @threshold: [0,1], best value is 0.1
+    % @compression_ratio: [0, 100], best value is 5.
+    % ---------------------------------------------
+    % returns:
+    % @area: area in number of pixels. conversion according to
+    % scan resolution.
     
-    data_id = list_of_data_id(i);
-
-    %% step 1: preprocessing
-    
-    % retrieve file path
+    % read & prepare image from path
     conn = database('limsdb','lims','mou53Brains!');
     curs = exec(conn,[]);
     sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_id) '"'];
     curs = exec(conn,sql);
     curs = fetch(curs);
     imagefilename = curs.Data;
-
-    % generate file path
     path = strcat('Z:\Converted Image Data\', imagefilename);
-
-    % load image into memory
     image_raw = imread(char(path));
 
-    % beautify for visual inspectioin
-    image_converted = uint8(image_raw);
-    
-    % convert to grayscale
-    image_gray = rgb2gray(image_converted);
-
-    % convert image to binary via thresholding
-    image_bw = im2bw(image_gray, .1);
+    % basic image preprocessing
+    image_uint8 = uint8(image_raw);  
+    image_uint8(:,:,3) = 0; % remove noise in blue channel
+    image_gray = rgb2gray(image_uint8); % convert to grayscale for thresholding
+    image_bw = im2bw(image_gray, threshold);
 
     % denoise through erode; regenerate through dilate
     se = strel('rectangle',[40 40]);
@@ -40,75 +33,29 @@ for i = 1:length(list_of_data_id)
     image_bw_2 = imdilate(image_bw_1,se);
 
     % smooth boundaries via disk structuring element
-    se = strel('disk',[20]);
+    se = strel('disk',20);
     image_bw_3 = imdilate(image_bw_2,se);
     image_bw_4 = imdilate(image_bw_3,se);
 
-    % fill in holes, if any
-    image_bw_5 = imfill(image_bw_4, 'holes');
-    
-    %% step 2: create mask
+    image_bw_5 = imfill(image_bw_4, 'holes'); % fill in holes, if any
 
-    % label objects in image
-    [labels, num] = bwlabel(image_bw_5);
+    % identify and characterize objects 
+    [labels, ~] = bwlabel(image_bw_5);
+    object_details = regionprops(labels, 'Area');
     
-    % describe each labeled object    
-    tissue_props = regionprops(labels, 'Area');
-    
-    % create an array containing index positions of large objects
-    % http://www2.compute.dtu.dk/courses/02511/exercises/02511%20-%20Exercise%206.pdf
-    idx = find([tissue_props.Area] > 50000);
-
-    % generate phase 1 mask
-    % http://www2.compute.dtu.dk/courses/02511/exercises/02511%20-%20Exercise%206.pdf
-    % http://stackoverflow.com/questions/10140068/bounding-box-using-matlab-for-the-image
+    % extract large objects
+    idx = find([object_details.Area] > 1000000);
     image_mask_1 = ismember(labels,idx);
-    
-    % modify mask so it doesn't exclude "lakes" inside the tissue
-    % compare with original image
     image_mask_2 = image_bw .* image_mask_1;
     
-    % recast to uint8 for cropping
-    image_mask_3 = uint8(image_mask_2);
-    
-    % now crop the original image with the modified mask
-    image_cropped = image_converted .* repmat(image_mask_3,[1,1,3]);
-
-    % save cropped image for visual inspection
-    cropped_filename = strcat(int2str(data_id), '_cropped_','.jpg');
-    imwrite(image_mask_2, cropped_filename, 'jpg', 'Quality', 5);
-
-    % save original image for comparison
-    original_filename = strcat(int2str(data_id), '_original_','.jpg');
-    imwrite(image_converted, original_filename, 'jpg', 'Quality', 5);
-
-    %% step 3: calculate area 
-    % calculate area of the final mask
-    % http://www.mathworks.com/matlabcentral/answers/137424-total-area-of-a-region-of-binary-image
+    % calculate area
     area = sum(image_mask_2(:));
     
-    %% step 4: generate boundingbox
-    
-    % calculate convex hull
-    CH = bwconvhull(image_mask_2);
-    
-    % identify bounding box for convex hull
-    st = regionprops(CH, 'BoundingBox' );
-    
-    % show bounding box for original image
-    % http://www.mathworks.com/matlabcentral/answers/87597-rectangle-around-the-object-bounding-box
-    imshow(image_converted)
-    rectangle('Position',[st.BoundingBox(1),st.BoundingBox(2),st.BoundingBox(3),st.BoundingBox(4)], 'EdgeColor','r','LineWidth',2 )
-    
-    %% step 5: save values
-    
-    % store values in arrays
-    csv_id(i) = data_id;
-    csv_area(i) = area;
-    
-    % write to disk 
-    section_area_calculations = cat(2, csv_id, csv_area);
-    csvwrite('section_area_calculations.csv', section_area_calculations)
+    % save cropped & original images for visual inspection
+    cropped_filename = strcat(int2str(data_id), '_cropped_','.jpg');
+    imwrite(image_mask_2, cropped_filename, 'jpg', 'Quality', compression_ratio);
+
+    original_filename = strcat(int2str(data_id), '_original_','.jpg');
+    imwrite(image_uint8, original_filename, 'jpg', 'Quality', compression_ratio);
+
 end
-    
-toc
