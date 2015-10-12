@@ -5,16 +5,20 @@
 #include <cmath>
 
 /**
-function: border inspection for off-centered scans
+function: border inspection for off-centered scans. it works by comparing histograms of left & right borders, since tissue that is connected to
+border will have different color histograms.
+
+usage: to inspect borders of 50 pixels for image "small_8156", do $ consoleapplication_opencv_cv2 small_8156.jpg 50
+
 */
 
 using namespace cv;
 using namespace std;
 
-// some functions
-Mat crop_right_roi(Mat *ptr, int padding);
-Mat crop_left_roi(Mat *ptr, int padding);
-Mat extract_histogram(Mat cropped_image);
+// declare functions
+Mat crop_right_roi(Mat *ptr, int padding); // check right border - user must defines padding
+Mat crop_left_roi(Mat *ptr, int padding); // check left border
+Mat extract_histogram(Mat cropped_image); // compare right/left histograms to determine border connections.
 
 
 int main(int argc, const char** argv)
@@ -23,16 +27,16 @@ int main(int argc, const char** argv)
 	Mat image, cropped_image, right_border_roi_histogram, left_border_roi_histogram, *ptr;
 	int padding;
 
-	// read image path and grab padding value from command line
+	// read image path and grab padding value from stdin
 	image = imread(argv[1], 1);
 	padding = atoi(argv[2]);
 
 	ptr = &image;
 
 	// display image
-	// imshow("actual", image);
-	// waitKey(0);
-	// destroyWindow("actual");
+	imshow("actual", image);
+	waitKey(0);
+	destroyWindow("actual");
 
 	// first, crop right ROI according to padding value and extract corresponding histogram
 	cropped_image = crop_right_roi(ptr, padding);
@@ -52,19 +56,20 @@ int main(int argc, const char** argv)
 Mat crop_right_roi(Mat *ptr, int padding){
 
 	Rect roi;
-	Mat new_image, image_crop;
-	
-	new_image = *ptr;
+	Mat image, image_crop;
 
-	roi.x = new_image.cols - padding;
+	image = *ptr;
+
+	roi.x = image.cols - padding;
 	roi.y = 0;
 	roi.width = padding;
-	roi.height = new_image.rows - 1;
+	roi.height = image.rows - 1;
 
-	// image_crop = new_image(roi);
-	// imshow("cropped", image_crop);
-	// waitKey(0);
-	// destroyWindow("cropped");
+	image_crop = image(roi); // crop image
+
+	imshow("cropped", image_crop);
+	waitKey(0);
+	destroyWindow("cropped");
 
 	return image_crop; // cropped image will be used to generate histogram
 }
@@ -72,19 +77,19 @@ Mat crop_right_roi(Mat *ptr, int padding){
 Mat crop_left_roi(Mat *ptr, int padding){
 
 	Rect roi;
-	Mat new_image, image_crop;
+	Mat image, image_crop;
 
-	new_image = *ptr;
+	image = *ptr;
 
 	roi.x = 0;
 	roi.y = 0;
 	roi.width = padding;
-	roi.height = new_image.rows - 1;
-	
-	// image_crop = new_image(roi);
-	// imshow("cropped", image_crop);
-	// waitKey(0);
-	// destroyWindow("cropped");
+	roi.height = image.rows - 1;
+
+	image_crop = image(roi);
+	imshow("cropped", image_crop);
+	waitKey(0);
+	destroyWindow("cropped");
 
 	return image_crop; // cropped image will be used to generate histogram
 }
