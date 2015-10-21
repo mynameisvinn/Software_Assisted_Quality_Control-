@@ -143,7 +143,7 @@ try
     
     commit(conn);
     
-    VACHT_patch_size = 50;
+    VACHT_patch_size = 200; % use wider windows for contextual information 
     im_16bit = im0 * 2^6;
     
     vacht_predictions_x = zeros(1, 1);
@@ -307,8 +307,8 @@ try
     
     for idx_i_7 = 1:length(vacht_predictions_x)
         feature_count = feature_count + 1;
-        vacht_a = round(vacht_predictions_x(idx_i_7)); % 5 represents x coordinate
-        vacht_b = round(vacht_predictions_y(idx_i_7)); % 6 represents x coordinate
+        vacht_a = round(vacht_predictions_x(idx_i_7));
+        vacht_b = round(vacht_predictions_y(idx_i_7));
 
         % if patch is out of bounds, return control to loop
         % image dimensions were extracted in previous section
@@ -320,7 +320,7 @@ try
         VACHT_patch = im_16bit(vacht_b-VACHT_patch_size: vacht_b +VACHT_patch_size, vacht_a - VACHT_patch_size: vacht_a + VACHT_patch_size,:);  
         VACHT_patch(:,:,1) = 0;
         VACHT_patch(:,:,3) = 0;
-        VACHT_patch(:,:,2) = VACHT_patch(:,:,2) * 2.5; % if you change 2.5 boost factor, youll need to change vacht threshold
+        VACHT_patch(:,:,2) = VACHT_patch(:,:,2) * 2.5;
         [m,n,q] = size(VACHT_patch);
         VACHT_filename = strcat('VACHT_', num2str(data_id), '_', int2str(idx_i_7),'.png');
         imwrite(VACHT_patch, VACHT_filename, 'png');
