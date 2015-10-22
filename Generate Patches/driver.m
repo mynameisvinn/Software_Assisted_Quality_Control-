@@ -3,7 +3,7 @@
 % @function: for each datafile ID, generate patches according to raw
 % specimen
 
-for idx = 68:length(list_of_data_id)
+for idx = 1:length(list_of_data_id)
    
     tic
     data_id = list_of_data_id(idx, 1);

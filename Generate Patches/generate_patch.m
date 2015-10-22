@@ -33,23 +33,16 @@ function [idx] = generate_patch(data_idx, multiplier)
         b = predictions(idx,2);
         patch_size = 200;
 
-        
-        patch = im_8bit( b-patch_size: b +patch_size, a - patch_size: a + patch_size,:);
-        patch(:,:,1) = 0;
-        patch(:,:,2) = patch(:,:,2) * multiplier;
-        patch(:,:,3) = 0;
-            
-        
-        % save patches in the appropriate raw specimen folder, if it exists
         try
-            filename = strcat(int2str(data_idx), '/', int2str(data_idx), '_', int2str(a), '_', int2str(b),'.tif');
+            patch = im_8bit( b-patch_size: b +patch_size, a - patch_size: a + patch_size,:);
+            patch(:,:,1) = 0;
+            patch(:,:,2) = patch(:,:,2) * multiplier;
+            patch(:,:,3) = 0;
+            filename = strcat(int2str(data_idx), '_', int2str(a), '_', int2str(b),'.tif');
             imwrite(patch, filename, 'tif');
             
-        % otherwise create new folder
         catch
-            mkdir(int2str(data_idx));
-            filename = strcat(int2str(data_idx), '/', int2str(data_idx), '_', int2str(a), '_', int2str(b),'.tif');
-            imwrite(patch, filename, 'tif');
+            continue
         
     end
 
