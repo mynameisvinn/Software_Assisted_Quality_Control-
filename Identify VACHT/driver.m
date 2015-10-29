@@ -1,17 +1,17 @@
 list_paths = dir;
 %%
-for i = 3:length(list_paths)
+for i = 3:length(dir)
     tic
     path = list_paths(i).name;
    
        disp(i);
        disp(path);
 
-       if identify_vacht_2(path, 50, 90) == 1
-            new_path = strcat('true/', path);
+       if identify_vacht(path, 50, 90) == 1
+            new_path = strcat('temp_true/', path);
 
        else
-            new_path = strcat('false/', path);
+            new_path = strcat('temp_false/', path);
        end
 
        im_raw = imread(path);
