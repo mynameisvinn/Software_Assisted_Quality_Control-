@@ -7,7 +7,7 @@ for i = 3:length(list_paths)
        disp(i);
        disp(path);
 
-       if identify_vacht_2(path, 70, 90) == 1
+       if identify_vacht_2(path, 50, 90) == 1
             new_path = strcat('true/', path);
 
        else
