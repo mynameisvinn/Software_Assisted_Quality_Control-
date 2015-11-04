@@ -1,0 +1,46 @@
+function [idx] = generate_patch(data_idx, user_id, counter_id)
+% @date: 10/19/15
+% @author: vincent tang
+
+% function: 
+% ---------
+% generate patches for user id 9 and counter 1
+
+% parameters: 
+% -----------
+% @data_idx: datafile ID
+
+    % retreive image
+    conn = database('limsdb','lims','mou53Brains!');
+    sql = ['SELECT primary_file_system_location_lossy FROM data_file WHERE id = "' num2str(data_idx) '"'];
+    curs = exec(conn,sql);
+    curs = fetch(curs);
+    imagefilename = curs.Data;
+    path = strcat('Z:\Converted Image Data\', imagefilename);
+    im_raw = imread(char(path));
+
+    % grab coordinates
+    sql = ['SELECT click_location_x_coordinate, click_location_y_coordinate FROM limsdb.data_file_click where (user_id = "' num2str(user_id) '") and (counter_id = "' num2str(counter_id) '") and data_file_id = "' num2str(data_idx) '"'];
+    curs = exec(conn,sql);
+    curs = fetch(curs);
+    predictions = cell2mat(curs.Data);
+    
+    % generate vacht patches from coordinates
+    for idx = 1:length(predictions(:,1))
+
+        x_coordinate = predictions(idx,1);
+        y_coordinate = predictions(idx,2);
+        patch_size = 100;
+
+        % exception: nmj is on border and cannot be cropped
+        try
+            patch = im_raw( y_coordinate-patch_size: y_coordinate +patch_size, x_coordinate - patch_size: x_coordinate + patch_size,:);
+            filename = strcat(int2str(data_idx), '_', int2str(x_coordinate), '_', int2str(y_coordinate),'.jp2');
+            imwrite(patch, filename);
+        catch
+            continue
+        end
+    end
+
+end
+

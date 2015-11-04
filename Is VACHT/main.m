@@ -2,7 +2,7 @@
 
 list_paths = dir;
 %%
-for i = 3:163
+for i = 3:54
     tic
     path = list_paths(i).name;
 
@@ -12,10 +12,10 @@ for i = 3:163
     patch = imread(path);
 
     if is_vacht(patch, 50, 90) == 1
-        new_path = strcat('true/', path);
+        new_path = strcat('true/', path, '.tif');
 
     else
-        new_path = strcat('false/', path);
+        new_path = strcat('false/', path, '.tif');
     end
 
     % display
@@ -24,6 +24,6 @@ for i = 3:163
     patch(:,:,2) = patch(:,:,2) * 2.5;
     patch(:,:,3) = 0;
 
-    imwrite(patch, new_path)
+    imwrite(patch, new_path, 'tif')
     toc
 end
