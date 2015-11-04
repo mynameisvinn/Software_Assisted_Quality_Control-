@@ -2,11 +2,10 @@ function [idx] = generate_patch(data_idx)
 % @date: 10/19/15
 % @author: vincent tang
 
-% function: generate patches for user id 8 and counter 1
+% function: generate patches for user id 9 and counter 1
 
 % parameters: 
 % @data_idx: datafile ID
-% @multiplier: should be 2.5x... used to increase channel intensity
 
     % retreive image
     conn = database('limsdb','lims','mou53Brains!');
@@ -29,7 +28,7 @@ function [idx] = generate_patch(data_idx)
 
         a = predictions(idx,1);
         b = predictions(idx,2);
-        patch_size = 200;
+        patch_size = 100;
 
         try
             patch = im_raw( b-patch_size: b +patch_size, a - patch_size: a + patch_size,:);
